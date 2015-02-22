@@ -1,0 +1,12 @@
+{
+	"name": "BlipBot",
+	"description": "A very nice chat bot",
+	"dependencies": {
+		"request": "2.53.0",
+		"ws": "0.7.1",
+		"mongodb": "1.4.31",
+		"ent": "2.2.0",
+		"log4js": "0.6.22",
+		"moment": "2.9.0"
+	}
+}
