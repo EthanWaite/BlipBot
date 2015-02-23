@@ -18,8 +18,6 @@ function connectMongo(cb) {
 				if (err || !result) {
 					return log.warn('Unable to authenticate with MongoDB.');
 				}
-
-				cb(db);
 			});
 		}
 		log.info('Connected to MongoDB.')
