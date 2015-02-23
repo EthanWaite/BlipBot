@@ -12,14 +12,18 @@ function connectMongo(cb) {
 		if (err) {
 			throw err;
 		}
-		
-		db.authenticate(config.db.username, config.db.password, function(err, result) {
-			if (err || !result) {
-				return log.warn('Unable to authenticate with MongoDB.');
-			}
-			
-			cb(db);
-		});
+
+		if(config.db.username != null || config.db.password != null){
+			db.authenticate(config.db.username, config.db.password, function(err, result) {
+				if (err || !result) {
+					return log.warn('Unable to authenticate with MongoDB.');
+				}
+
+				cb(db);
+			});
+		}
+		log.info('Connected to MongoDB.')
+		cb(db);
 	});
 }
 

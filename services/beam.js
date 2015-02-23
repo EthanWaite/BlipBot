@@ -13,9 +13,9 @@ module.exports = beam = function(db, config) {
 	this.messages = [];
 	this.warnings = {};
 	this.maxwarnings = 2;
-	
+
 	events.call(this);
-	
+
 	var self = this;
 	self.getAuth(config.beam.username, config.beam.password, function(id) {
 		self.getChannel(config.beam.channel, function(channel) {
@@ -29,6 +29,14 @@ util.inherits(beam, events);
 
 beam.prototype.getAuth = function(username, password, cb) {
 	this.query('post', 'users/login', { username: username, password: password }, function(err, res, body) {
+		if(err){
+			log.error('Beam authentication failed!');
+			process.exit(code=0);
+		}
+		if(body === "Invalid username or password."){
+			log.error('Invalid username or password.');
+			process.exit(code=0);
+		}
 		log.info('Authenticated with Beam.');
 		cb(JSON.parse(body).id);
 	});
@@ -45,14 +53,14 @@ beam.prototype.getSocket = function(user) {
 	var self = this;
 	this.query('get', 'chats/' + self.channel, null, function(err, res, body) {
 		var data = JSON.parse(body);
-		
+
 		log.info('Connecting to web socket...');
 		socket = new websocket(JSON.parse(body).endpoints[0], { headers: { 'User-Agent': agent } });
-		
+
 		socket.on('open', function() {
 			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.channel, user, data.authkey ] }));
 		});
-		
+
 		socket.on('message', function(data) {
 			log.debug('Raw: ' + data);
 			data = JSON.parse(data);
@@ -69,7 +77,7 @@ beam.prototype.getSocket = function(user) {
 						role: data.data.user_role
 					}
 				};
-				
+
 				self.handleMessage(message);
 				self.messages.unshift(message);
 			}
@@ -94,7 +102,7 @@ beam.prototype.addWarning = function(user, reason, cb) {
 		if (err) {
 			throw err;
 		}
-		
+
 		log.debug('Inserted warning.');
 		self.getWarnings(user, function(warnings) {
 			log.debug('Got new warnings.');
@@ -128,9 +136,9 @@ beam.prototype.query = function(method, target, form, cb) {
 
 beam.prototype.sendMessage = function(msg, recipient) {
 	if (recipient !== undefined) {
-		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;	
+		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;
 	}
-	
+
 	socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 
@@ -149,7 +157,7 @@ beam.prototype.parseMessage = function(parts) {
 	var result = '';
 	parts.forEach(function(part) {
 		if (part.type == 'text') {
-			result = result + part.data;	
+			result = result + part.data;
 		}else{
 			result = result + part.text;
 		}
