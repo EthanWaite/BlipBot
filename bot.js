@@ -4,22 +4,29 @@ var log = require('log4js').getLogger('MAIN');
 
 var config = JSON.parse(fs.readFileSync('config.json'));
 
+if(!config.debug.enabled){
+	log.setLevel('INFO');
+}
+
 log.info('Starting BlipBot Chat Bot.');
 
 function connectMongo(cb) {
 	log.info('Connecting to MongoDB...');
 	mongo.connect('mongodb://' + config.db.host + ':' + config.db.port + '/' + config.db.name, function(err, db) {
 		if (err) {
+			log.error('Unable to connect to MongoDB!');
 			throw err;
 		}
-		
-		db.authenticate(config.db.username, config.db.password, function(err, result) {
-			if (err || !result) {
-				return log.warn('Unable to authenticate with MongoDB.');
-			}
-			
-			cb(db);
-		});
+
+		if(config.db.username != null || config.db.password != null){
+			db.authenticate(config.db.username, config.db.password, function(err, result) {
+				if (err || !result) {
+					return log.warn('Unable to authenticate with MongoDB.');
+				}
+			});
+		}
+		log.info('Connected to MongoDB.')
+		cb(db);
 	});
 }
 
