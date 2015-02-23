@@ -34,7 +34,7 @@ util.inherits(beam, events);
 beam.prototype.getAuth = function(username, password, cb) {
 	this.query('post', 'users/login', { username: username, password: password }, function(err, res, body) {
 		if(err){
-			log.error('Beam authentication failed!');
+			log.error('Could not establish a connection to Beam!');
 			process.exit(code=0);
 		}
 		if(body === "Invalid username or password."){
@@ -63,6 +63,7 @@ beam.prototype.getSocket = function(user) {
 
 		socket.on('open', function() {
 			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.channel, user, data.authkey ] }));
+			log.info('Connected to web socket!')
 		});
 
 		socket.on('message', function(data) {
