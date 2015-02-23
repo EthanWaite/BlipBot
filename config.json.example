@@ -1,8 +1,9 @@
 {
-  "beam": {
-    "username": "user123",
-    "password": "mypassword",
-    "channel": "channelname"
+  "services": {
+    "beam": {
+      "username": "BlipBot",
+      "password": "password"
+    }
   },
   "db": {
     "host": "127.0.0.1",

@@ -4,12 +4,22 @@ var messages = [];
 var timer;
 
 module.exports = function(service) {
-	setTimer(service);
+	service.db.collection('schedule').find({ channel: service.cid }).toArray(function(err, rows) {
+		messages = rows;
+		setTimer(service);
+	});
 	
 	service.on('scheduleadd', function(data) {
 		if (service.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
-			messages.push(data.ex.join(' '));
-			service.sendMessage('Your message has been added to the message wheel.', data.user.name);
+			var row = { channel: service.cid, content: data.ex.join(' ') };
+			service.db.collection('schedule').insert(row, function(err) {
+				if (err) {
+					throw err;
+				}
+				messages.push(data);
+				setTimer(service);
+				service.sendMessage('Your message has been added to the message wheel.', data.user.name);
+			});
 		}
 	});
 	
@@ -30,7 +40,9 @@ module.exports = function(service) {
 function setTimer(service) {
 	log.info('Starting scheduler for ' + interval + ' minutes...');
 	timer = setInterval(function() {
-		service.sendMessage(messages[0]);
-		messages.shift();
+		if (messages.length > 0) {
+			service.sendMessage(messages[0].content);
+			messages.shift();
+		}
 	}, interval * 60 * 1000);
 }

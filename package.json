@@ -2,11 +2,16 @@
   "name": "BlipBot",
   "description": "A very nice chat bot",
   "dependencies": {
+    "body-parser": "1.12.0",
     "ent": "2.2.0",
+    "express": "4.12.0",
+    "express-session": "1.10.3",
+    "hbs": "2.8.0",
     "log4js": "0.6.22",
     "moment": "2.9.0",
     "mongodb": "1.4.31",
     "request": "2.53.0",
+    "socket.io": "1.3.4",
     "ws": "0.7.1"
   }
 }

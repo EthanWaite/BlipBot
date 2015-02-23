@@ -1,5 +1,3 @@
-var commands = {};
-
 module.exports = function(service) {
 	setupCommands(service);
 	
@@ -8,21 +6,32 @@ module.exports = function(service) {
 			return;
 		}
 		
-		if (!(data.ex[0] in commands) && service.listeners(data.ex[0]).length > 0) {
+		if (service.listeners(data.ex[0]).length > 0) {
 			return service.sendMessage('You cannot override a predefined command.', data.user.name);	
 		}
 		
-		commands[data.ex[0]] = data.ex.slice(1).join(' ');
-		service.sendMessage('Command !' + data.ex[0] + ' has been set.', data.user.name);
-		setupCommands(service);
+		service.db.collection('commands').insert({ channel: service.cid, name: data.ex[0], content: data.ex.slice(1).join(' ') }, function(err) {
+			if (err) {
+				throw err;
+			}
+			
+			service.sendMessage('Command !' + data.ex[0] + ' has been set.', data.user.name);
+			setupCommands(service);
+		});
 	});
 };
 
 function setupCommands(service) {
-	for (var key in commands) {
-		service.removeAllListeners(key);
-		service.on(key, function(data) {
-			service.sendMessage(commands[key], data.ex[0] || data.user.name);
+	service.db.collection('commands').find({ channel: service.cid }).toArray(function(err, rows) {
+		if (err) {
+			throw err;
+		}
+		
+		rows.forEach(function(row) {
+			service.removeAllListeners();
+			service.on(row.name, function(data) {
+				service.sendMessage(row.content, data.ex[0] || data.user.name);
+			});
 		});
-	}
+	});
 }

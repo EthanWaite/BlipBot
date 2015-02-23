@@ -1,10 +1,18 @@
 var fs = require('fs');
 var mongo = require('mongodb').MongoClient;
 var log = require('log4js').getLogger('MAIN');
-
 var config = JSON.parse(fs.readFileSync('config.json'));
 
 log.info('Starting BlipBot Chat Bot.');
+
+connectMongo(function(db) {
+	require('./web/server')(db);
+	db.collection('users').find({}).toArray(function(err, rows) {
+		rows.forEach(function(row) {
+          registerUser(db, row);
+        });
+	});
+});
 
 function connectMongo(cb) {
 	log.info('Connecting to MongoDB...');
@@ -23,13 +31,19 @@ function connectMongo(cb) {
 	});
 }
 
-connectMongo(function(db) {
-	var service = require('./services/beam');
-	service = new service(db, config);
+function registerUser(db, user) {
+	for (var key in user.services) {
+		registerService(db, key, user.services[key]);
+	}
+}
 
+function registerService(db, name, channel) {
+	var service = require('./services/' + name);
+	service = new service(db, config.services[name], channel);
+	
 	fs.readdir('./commands', function(err, files) {
 		files.forEach(function(file) {
 			require('./commands/' + file)(service);
 		});
 	});
-});
+}

@@ -7,9 +7,10 @@ var log = require('log4js').getLogger('BEAM');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
-module.exports = beam = function(db, config) {
+module.exports = beam = function(db, config, channel) {
 	this.db = db;
 	this.config = config;
+	this.channel = channel;
 	this.messages = [];
 	this.warnings = {};
 	this.maxwarnings = 2;
@@ -17,9 +18,9 @@ module.exports = beam = function(db, config) {
 	events.call(this);
 	
 	var self = this;
-	self.getAuth(config.beam.username, config.beam.password, function(id) {
-		self.getChannel(config.beam.channel, function(channel) {
-			self.channel = channel.id;
+	self.getAuth(config.username, config.password, function(id) {
+		self.getChannel(channel, function(channel) {
+			self.cid = channel.id;
 			self.getSocket(id);
 		});
 	});
@@ -43,20 +44,20 @@ beam.prototype.getChannel = function(username, cb) {
 
 beam.prototype.getSocket = function(user) {
 	var self = this;
-	this.query('get', 'chats/' + self.channel, null, function(err, res, body) {
+	this.query('get', 'chats/' + self.cid, null, function(err, res, body) {
 		var data = JSON.parse(body);
 		
 		log.info('Connecting to web socket...');
 		socket = new websocket(JSON.parse(body).endpoints[0], { headers: { 'User-Agent': agent } });
 		
 		socket.on('open', function() {
-			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.channel, user, data.authkey ] }));
+			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.cid, user, data.authkey ] }));
 		});
 		
 		socket.on('message', function(data) {
 			log.debug('Raw: ' + data);
 			data = JSON.parse(data);
-			if (data.type == 'event' && data.event == 'ChatMessage' && data.data.user_name != self.config.beam.username) {
+			if (data.type == 'event' && data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
 				var text = self.parseMessage(data.data.message);
 				var message = {
 					time: new Date().getTime(),
@@ -78,7 +79,7 @@ beam.prototype.getSocket = function(user) {
 };
 
 beam.prototype.getWarnings = function(user, cb) {
-	this.db.collection('warnings').find({ channel: this.channel, user: user.id, expired: false }).count(function(err, count) {
+	this.db.collection('warnings').find({ channel: this.cid, user: user.id, expired: false }).count(function(err, count) {
 		if (err) {
 			throw err;
 		}
@@ -89,7 +90,7 @@ beam.prototype.getWarnings = function(user, cb) {
 beam.prototype.addWarning = function(user, reason, cb) {
 	log.warn('Adding warning...');
 	var self = this;
-	this.db.collection('warnings').insert({ channel: this.channel, user: user.id, name: user.name, time: new Date().getTime(), reason: reason, expired: false }, function(err) {
+	this.db.collection('warnings').insert({ channel: this.cid, user: user.id, name: user.name, time: new Date().getTime(), reason: reason, expired: false }, function(err) {
 		log.debug('Callback');
 		if (err) {
 			throw err;
@@ -109,7 +110,7 @@ beam.prototype.addWarning = function(user, reason, cb) {
 };
 
 beam.prototype.resetWarnings = function(user) {
-	this.db.collection('warnings').update({ channel: this.channel, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
+	this.db.collection('warnings').update({ channel: this.cid, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
 		throw err;
 	});
 };
@@ -136,12 +137,12 @@ beam.prototype.sendMessage = function(msg, recipient) {
 
 beam.prototype.deleteMessage = function(id, cb) {
 	log.info('Deleting message with id ' + id + '.');
-	this.query('delete', 'chats/' + this.channel + '/message/' + id, {}, cb);
+	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
 
 beam.prototype.banUser = function(user, cb) {
 	log.warn('Banning user ' + user.name + '.');
-	this.query('put', 'chats/' + this.channel + '/ban/' + user.name, {}, cb);
+	this.query('put', 'chats/' + this.cid + '/ban/' + user.name, {}, cb);
 	this.resetWarnings(user);
 };
 

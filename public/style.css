@@ -1,0 +1,139 @@
+@import url('http://fonts.googleapis.com/css?family=Open+Sans:400,700,300');
+
+body {
+	margin:0px auto;
+}
+
+body, input {
+	font-family:Open Sans, Helvetica Neue, Arial, sans-serif;
+}
+
+h1, h2, h3 {
+	font-weight:300;
+}
+
+input {
+	padding:12px;
+	border:solid 1px #ccc;
+}
+
+input[type="submit"] {
+	background-color:#41007a;
+	border-color:rgba(0, 0, 0, 0.2);
+	font-size:14px;
+	color:#fff;
+	padding:12px 24px;
+	opacity:0.8;
+	transition:opacity .5s ease;
+}
+
+input[type="submit"]:hover {
+	opacity:0.9;
+}
+
+.banner {
+	background-image:url('bg.png');
+	border-bottom:solid 9px rgba(65, 0, 122, 1);
+}
+
+.banner > .container {
+	padding:24px 0px;
+	color:#fff;
+}
+
+.banner .welcome {
+	text-align:center;
+}
+
+.banner .welcome h1 {
+	font-size:42px;
+}
+
+.banner .welcome h2 {
+	margin:0px 0px 64px 0px;	
+}
+
+.banner .header {
+	background:linear-gradient(0deg, rgba(65, 0, 122, 0.4), rgba(65, 0, 122, 0.9));
+	color:#fff;
+	overflow:hidden;
+}
+
+.banner .header h1 {
+	font-size:24px;
+	margiN:9px 0px 12px 0px;
+}
+
+.banner .header .nav, .right {
+	float:right;
+}
+
+.banner .header .nav a {
+	display:inline-block;
+	padding:6px 0px;
+}
+
+.container {
+	width:1000px;
+	margin:0px auto;
+}
+
+.signup input[type="text"] {
+	min-width:400px;
+	box-shadow:0px 0px 20px 8px rgba(0, 0, 0, 0.5);
+	border:none;
+	font-size:18px;
+	outline:none;
+}
+
+.features {
+	overflow:hidden;
+}
+
+.features > div {
+	width:25%;
+	text-align:center;
+	padding:32px 12px;
+	box-sizing:border-box;
+	float:left;
+}
+
+.features > div h3 {
+	font-size:22px;
+	margin:32px 32px 0px 32px;
+}
+
+.features > div .fa {
+	color:rgba(65, 0, 122, 1);
+}
+
+.features > div p {
+	font-size:13px;	
+}
+
+.login {
+	width:360px;
+	margin:32px auto;
+}
+
+.login label {
+	display:block;
+	color:#aaa;
+	margin:3px 0px;
+}
+
+.login input[type="text"] {
+	width:100%;
+	margin-bottom:16px;
+}
+
+.footer {
+	border-top:solid 1px #ddd;
+	font-size:12px;
+	color:#aaa;
+	padding:24px 0px;
+}
+
+.footer a {
+	color:#aaa;
+}
