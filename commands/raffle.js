@@ -9,7 +9,7 @@ module.exports = function(service) {
 			users.push(data.user.name);
 		}
 	});
-	
+
 	service.on('raffleset', function(data) {
 		if (service.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
 			users = [];
@@ -17,13 +17,13 @@ module.exports = function(service) {
 			service.sendMessage('Any users who say ' + (term == '' ? 'anything' : term) + ' will be entered into the raffle.', data.user.name);
 		}
 	});
-	
+
 	service.on('raffleend', function(data) {
 		if (service.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
 			if (users.length == 0) {
-				return service.sendMessage('Nobody entered the raffle this time. Awh. :(', data.user.name);	
+				return service.sendMessage('Nobody entered the raffle this time. Awh. :(', data.user.name);
 			}
-			
+
 			service.sendMessage('@' + users[Math.floor(Math.random() * users.length)] + ' has been randomly drawn.');
 			users = [];
 			term = null;

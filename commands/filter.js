@@ -9,14 +9,14 @@ module.exports = function(service) {
 					caps++;
 				}
 			}
-			
+
 			if ((caps / data.msg.length * 100) > 50) {
 				service.deleteMessage(data.id, function() {
-					service.sendMessage('Please stop speaking in all-caps.', data.user.name);	
+					service.sendMessage('Please stop speaking in all-caps.', data.user.name);
 				});
 			}
 		}
-		
+
 		for (var i in blacklist) {
 			if (data.msg.toLowerCase().indexOf(blacklist[i]) != -1) {
 				service.deleteMessage(data.id, function() {
