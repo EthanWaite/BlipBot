@@ -10,6 +10,7 @@ function connectMongo(cb) {
 	log.info('Connecting to MongoDB...');
 	mongo.connect('mongodb://' + config.db.host + ':' + config.db.port + '/' + config.db.name, function(err, db) {
 		if (err) {
+			log.error('Unable to connect to MongoDB!');
 			throw err;
 		}
 
