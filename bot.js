@@ -4,6 +4,10 @@ var log = require('log4js').getLogger('MAIN');
 
 var config = JSON.parse(fs.readFileSync('config.json'));
 
+if(!config.debug.enabled){
+	log.setLevel('INFO');
+}
+
 log.info('Starting BlipBot Chat Bot.');
 
 function connectMongo(cb) {

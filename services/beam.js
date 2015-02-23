@@ -23,6 +23,10 @@ module.exports = beam = function(db, config) {
 			self.getSocket(id);
 		});
 	});
+
+	if(!config.debug.enabled){
+		log.setLevel('INFO');
+	}
 };
 
 util.inherits(beam, events);
