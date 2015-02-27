@@ -10,11 +10,34 @@ module.exports = function(app) {
 			}
 			
 			if (rows.length == 0) {
-				res.redirect('./login');	
+				res.redirect('./login');
 			}else{
-				req.session.id = rows[0]._id;
+				req.session.userid = rows[0]._id;
+				req.session.services = rows[0].services;
 				res.redirect('./');
 			}
+		});
+	});
+	
+	app.all('*', function(req, res, next) {
+		if (!('userid' in req.session)) {
+			return res.redirect('/login');
+		}
+		next();
+	});
+	
+	app.all('/:service', function(req, res, next) {
+		app.get('db').collection('services').find({ user: req.session.userid, type: req.params.service }).toArray(function(err, rows) {
+			if (err) {
+				throw err;
+			}
+			
+			if (rows.length == 0) {
+				return res.redirect('/');
+			}
+			
+			req.service = rows[0];
+			next();
 		});
 	});
 };

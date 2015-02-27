@@ -60,6 +60,7 @@ beam.prototype.getSocket = function(user) {
 			if (data.type == 'event' && data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
 				var text = self.parseMessage(data.data.message);
 				var message = {
+					channel: self.channel,
 					time: new Date().getTime(),
 					msg: text,
 					ex: text.split(' '),

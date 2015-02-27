@@ -5,11 +5,12 @@ var config = JSON.parse(fs.readFileSync('config.json'));
 
 log.info('Starting BlipBot Chat Bot.');
 
+var web = require('./web/server');
 connectMongo(function(db) {
-	require('./web/server')(db);
-	db.collection('users').find({}).toArray(function(err, rows) {
+	web = new web(config, db);
+	db.collection('services').find({}).toArray(function(err, rows) {
 		rows.forEach(function(row) {
-          registerUser(db, row);
+			registerService(db, row);
         });
 	});
 });
@@ -31,19 +32,18 @@ function connectMongo(cb) {
 	});
 }
 
-function registerUser(db, user) {
-	for (var key in user.services) {
-		registerService(db, key, user.services[key]);
-	}
-}
-
-function registerService(db, name, channel) {
-	var service = require('./services/' + name);
-	service = new service(db, config.services[name], channel);
+function registerService(db, data) {
+	var service = require('./services/' + data.type);
+	service = new service(db, config.services[data.type], data.channel);
+	service.on('data', function(data) {
+		web.emit('chat', data);
+	});
 	
-	fs.readdir('./commands', function(err, files) {
-		files.forEach(function(file) {
-			require('./commands/' + file)(service);
+	db.collection('modules').find({ service: data._id }).toArray(function(err, rows) {
+		rows.forEach(function(row) {
+			if (row.enabled) {
+				require('./commands/' + row.module)(service, web);
+			}
 		});
 	});
 }

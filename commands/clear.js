@@ -1,4 +1,4 @@
-module.exports = function(service) {	
+module.exports = function(service) {
 	service.on('clear', function(data) {
 		if (!service.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
 			return;
@@ -28,4 +28,10 @@ module.exports = function(service) {
 		
 		service.sendMessage('The channel chat has been cleared.', data.user.name);
 	});
+	
+	return {
+		id: 'clear',
+		name: 'Clear Chat',
+		description: 'This will allow moderators to clear large numbers of messages from the channel. They can clear a specific user\'s chat, or the entire channel.'
+	};
 };

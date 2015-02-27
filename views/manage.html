@@ -1,0 +1,48 @@
+<div class="container">
+	<div class="outer">
+		<div class="half">
+			<div class="content">
+				<div class="title">
+					<a class="fa fa-wrench"></a>
+					<h3>Chat Logs</h3>
+				</div>
+				<div class="logs"></div>
+			</div>
+		</div>
+
+		<div class="half">
+			<div class="content">
+				<div class="title">
+					<a class="fa fa-wrench"></a>
+					<h3>Modules</h3>
+				</div>
+				<ul>
+					{{#each modules}}
+						<li>
+							<a class="fa fa-wrench"></a>
+							<a class="fa fa-times"></a>
+							{{module}}
+						</li>
+					{{/each}}
+				</ul>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+	var socket = io();
+	socket.on('connect', function(data) {
+		socket.emit('service', { type: '{{service.type}}' }, function() {
+			console.log('connected!');
+		});
+	});
+	
+	socket.on('chat', function(data) {
+		var $line = $('<div class="line chat"><span class="sender"></span><span class="message"></span></div>');
+		$line.find('.sender').text(data.user.name + ':');
+		$line.find('.message').text(data.msg);
+		$line.appendTo($('.logs'));
+	});
+</script>

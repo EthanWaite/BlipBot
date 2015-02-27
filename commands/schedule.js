@@ -35,6 +35,12 @@ module.exports = function(service) {
 			service.sendMessage('The scheduler interval has been changed to ' + data.ex[0] + ' minutes.', data.user.name);
 		}
 	});
+	
+	return {
+		id: 'schedule',
+		name: 'Scheduler',
+		description: 'This module repeatedly cycles through a set of messages.'
+	};
 };
 
 function setTimer(service) {

@@ -28,4 +28,10 @@ module.exports = function(service) {
 			}
 		}
 	});
+	
+	return {
+		id: 'filter',
+		name: 'Chat Filter',
+		description: 'This automatically deletes and eventually punishes users for messages with bad language or too mnay capital letters in their messages.'
+	};
 };

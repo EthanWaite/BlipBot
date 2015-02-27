@@ -29,4 +29,10 @@ module.exports = function(service) {
 			term = null;
 		}
 	});
+	
+	return {
+		id: 'raffle',
+		name: 'Raffle',
+		description: 'This allows moderators to start a raffle, where people who say a certain word will be entered into a random competition.'
+	};
 };

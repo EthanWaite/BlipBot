@@ -13,11 +13,17 @@ module.exports = function(service) {
 		
 		for (var i in service.messages) {
 			var data = service.messages[i];
-			if (data.user_name == user) {
-				return service.sendMessage('I last saw @' + user + ' ' + moment(data.time).fromNow() + ' saying: ' + service.parseMessage(data.message), data.user.name);
+			if (data.user.name == user) {
+				return service.sendMessage('I last saw @' + user + ' ' + moment(data.time).fromNow() + ' saying: ' + data.msg, data.user.name);
 			}
 		}
 		
 		service.sendMessage('I have not seen @' + user + ' speak recently.', data.user.name);
 	});
+	
+	return {
+		id: 'seen',
+		name: 'Last Seen',
+		description: 'This module adds a command where users can determine how long ago a particular user was seen speaking in the channel.'
+	};
 };

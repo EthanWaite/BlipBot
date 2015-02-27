@@ -54,6 +54,7 @@ input[type="submit"]:hover {
 }
 
 .banner .header {
+	background-color:rgba(65, 0, 122, 0.9);
 	background:linear-gradient(0deg, rgba(65, 0, 122, 0.4), rgba(65, 0, 122, 0.9));
 	color:#fff;
 	overflow:hidden;
@@ -70,6 +71,8 @@ input[type="submit"]:hover {
 
 .banner .header .nav a {
 	display:inline-block;
+	color:#fff;
+	text-decoration:none;
 	padding:6px 0px;
 }
 
@@ -122,9 +125,89 @@ input[type="submit"]:hover {
 	margin:3px 0px;
 }
 
-.login input[type="text"] {
+.login input[type="text"], .login input[type="password"] {
 	width:100%;
 	margin-bottom:16px;
+}
+
+.container .outer {
+	margin:0px -16px;
+	overflow:hidden;
+}
+
+.half, .third, .quarter {
+	float:left;
+	box-sizing:border-box;
+	padding:0px 16px;
+}
+
+.half {
+	width:50%;
+}
+
+.content {
+	border:solid 1px #ccc;
+	border-radius:4px;
+	font-size:14px;
+	margin:32px 0px;
+}
+
+.content .title {
+	background-color:#eee;
+	border-bottom:solid 1px #ccc;
+	padding:9px;
+}
+
+.content .title h3 {
+	font-size:18px;
+	margin:4px;
+}
+
+.content .title .fa {
+	background-color:#f6f6f6;
+	border:solid 1px #ccc;
+	border-radius:4px;
+	padding:8px;
+	float:right;
+	opacity:0.8;
+}
+
+.content .title .fa:hover {
+	opacity:0.9;
+}
+
+.content > ul {
+	list-style-type:none;
+	padding:0px;
+	margin:0px;
+}
+
+.content > ul li {
+	border-bottom:solid 1px #e6e6e6;
+	padding:12px;
+}
+
+.content > ul li:last-child {
+	border-bottom:none;
+}
+
+.content > ul li .fa {
+	float:right;
+	opacity:0.8;
+	margin:3px 0px 0px 12px;
+}
+
+.content > ul li .fa:hover {
+	opacity:1;
+}
+
+.content .chat.line {
+	padding:12px;
+}
+
+.content .chat.line .sender {
+	display:inline-block;
+	min-width:100px;
 }
 
 .footer {

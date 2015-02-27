@@ -19,6 +19,12 @@ module.exports = function(service) {
 			setupCommands(service);
 		});
 	});
+	
+	return {
+		id: 'custom',
+		name: 'Custom Messages',
+		description: 'This allows moderators to define custom commands, which will display a message of their choice.'
+	};
 };
 
 function setupCommands(service) {
