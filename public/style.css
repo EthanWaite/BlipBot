@@ -17,7 +17,7 @@ input {
 	border:solid 1px #ccc;
 }
 
-input[type="submit"] {
+input[type="submit"], .btn {
 	background-color:#41007a;
 	border-color:rgba(0, 0, 0, 0.2);
 	font-size:14px;
@@ -25,10 +25,20 @@ input[type="submit"] {
 	padding:12px 24px;
 	opacity:0.8;
 	transition:opacity .5s ease;
+	cursor:default;
 }
 
-input[type="submit"]:hover {
+input[type="submit"]:hover, .btn:hover {
 	opacity:0.9;
+}
+
+.btn {
+	padding:13px 24px;
+}
+
+.btn.normal {
+	background-color:#ccc;
+	color:#000;
 }
 
 .banner {
@@ -87,6 +97,7 @@ input[type="submit"]:hover {
 	border:none;
 	font-size:18px;
 	outline:none;
+	margin-bottom:16px;
 }
 
 .features {
@@ -176,7 +187,7 @@ input[type="submit"]:hover {
 	opacity:0.9;
 }
 
-.content > ul {
+.content > ul, .modal ul {
 	list-style-type:none;
 	padding:0px;
 	margin:0px;
@@ -191,14 +202,33 @@ input[type="submit"]:hover {
 	border-bottom:none;
 }
 
-.content > ul li .fa {
-	float:right;
+.content > ul li .fa, .modal li .fa {
+	width:24px;
 	opacity:0.8;
-	margin:3px 0px 0px 12px;
+	margin:3px 0px 0px 0px;
 }
 
-.content > ul li .fa:hover {
+.content > ul li .fa.right, .modal li .fa {
+	width:auto;
+	float:right;
+	margin-left:12px;
+}
+
+.content > ul li .fa:hover, .modal li .fa:hover {
 	opacity:1;
+}
+
+.content > ul li .fa-check {
+	color:#1f671f;
+}
+
+.content > ul li .fa-times {
+	color:#911f1f;
+}
+
+.content .logs {
+	height:307px;
+	overflow-y:auto;
 }
 
 .content .chat.line {
@@ -208,6 +238,60 @@ input[type="submit"]:hover {
 .content .chat.line .sender {
 	display:inline-block;
 	min-width:100px;
+}
+
+.modal {
+	display:none;
+	position:fixed;
+	top:0px;
+	right:0px;
+	bottom:0px;
+	left:0px;
+	background-color:rgba(0, 0, 0, 0.8);
+}
+
+.modal > div {
+	display:none;
+	width:480px;
+	background-color:#fff;
+	border-radius:4px;
+	padding:16px;
+	margin:128px auto;
+}
+
+.modal h2 {
+	margin-top:0px;
+}
+
+.modal h3 {
+	padding:9px 0px;
+	margin:12px 0px 0px 0px;
+	border-bottom:solid 1px #eee;
+}
+
+.modal h3 .fa {
+	float:right;
+	margin:4px 0px 4px 8px;
+	opacity:0.8;
+}
+
+.modal h3 .fa:hover {
+	opacity:1;
+}
+
+.modal .command, .modal li {
+	border-bottom:solid 1px #eee;
+	padding:9px 0px;
+}
+
+.modal form.add {
+	display:none;
+}
+
+.modal input[type="text"] {
+	width:100%;
+	box-sizing:border-box;
+	margin-bottom:9px;
 }
 
 .footer {

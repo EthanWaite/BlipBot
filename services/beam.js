@@ -7,13 +7,14 @@ var log = require('log4js').getLogger('BEAM');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
-module.exports = beam = function(db, config, channel) {
+module.exports = beam = function(db, config, id, channel) {
 	this.db = db;
 	this.config = config;
+	this.id = id;
 	this.channel = channel;
 	this.messages = [];
 	this.warnings = {};
-	this.maxwarnings = 2;
+	this.maxwarnings = 5;
 	
 	events.call(this);
 	
@@ -42,16 +43,37 @@ beam.prototype.getChannel = function(username, cb) {
 	});
 };
 
-beam.prototype.getSocket = function(user) {
+beam.prototype.getSocket = function(user, endpoint) {
+	if (endpoint === undefined) {
+		endpoint = 0;	
+	}
+	
 	var self = this;
 	this.query('get', 'chats/' + self.cid, null, function(err, res, body) {
 		var data = JSON.parse(body);
 		
-		log.info('Connecting to web socket...');
-		socket = new websocket(JSON.parse(body).endpoints[0], { headers: { 'User-Agent': agent } });
+		var endpoints = JSON.parse(body).endpoints;
+		if (endpoint >= endpoints.length) {
+			endpoint = 0;
+		}
+		var server = endpoints[endpoint];
+		
+		log.info('Connecting to web socket at ' + server + ' (endpoint ' + endpoint + ')...');
+		socket = new websocket(server, { headers: { 'User-Agent': agent } });
 		
 		socket.on('open', function() {
 			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.cid, user, data.authkey ] }));
+		});
+		
+		socket.on('error', function(err) {
+			log.warn(err);
+		});
+		
+		socket.on('close', function() {
+			log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
+			setTimeout(function() {
+				self.getSocket(user, endpoint + 1);
+			}, 3000);
 		});
 		
 		socket.on('message', function(data) {
@@ -60,7 +82,7 @@ beam.prototype.getSocket = function(user) {
 			if (data.type == 'event' && data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
 				var text = self.parseMessage(data.data.message);
 				var message = {
-					channel: self.channel,
+					service: 'beam',
 					time: new Date().getTime(),
 					msg: text,
 					ex: text.split(' '),
@@ -80,7 +102,7 @@ beam.prototype.getSocket = function(user) {
 };
 
 beam.prototype.getWarnings = function(user, cb) {
-	this.db.collection('warnings').find({ channel: this.cid, user: user.id, expired: false }).count(function(err, count) {
+	this.db.collection('warnings').find({ service: this.id, user: user.id, expired: false }).count(function(err, count) {
 		if (err) {
 			throw err;
 		}
@@ -91,7 +113,7 @@ beam.prototype.getWarnings = function(user, cb) {
 beam.prototype.addWarning = function(user, reason, cb) {
 	log.warn('Adding warning...');
 	var self = this;
-	this.db.collection('warnings').insert({ channel: this.cid, user: user.id, name: user.name, time: new Date().getTime(), reason: reason, expired: false }, function(err) {
+	this.db.collection('warnings').insert({ service: this.id, user: user.id, name: user.name, time: new Date().getTime(), reason: reason, expired: false }, function(err) {
 		log.debug('Callback');
 		if (err) {
 			throw err;
@@ -111,7 +133,7 @@ beam.prototype.addWarning = function(user, reason, cb) {
 };
 
 beam.prototype.resetWarnings = function(user) {
-	this.db.collection('warnings').update({ channel: this.cid, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
+	this.db.collection('warnings').update({ service: this.id, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
 		throw err;
 	});
 };
@@ -129,6 +151,10 @@ beam.prototype.query = function(method, target, form, cb) {
 };
 
 beam.prototype.sendMessage = function(msg, recipient) {
+	if (socket.readyState != 1) {
+		return log.warn('Discarding message, as connection is offline.');	
+	}
+	
 	if (recipient !== undefined) {
 		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;	
 	}
@@ -164,10 +190,10 @@ beam.prototype.handleMessage = function(data) {
 	if (data.ex[0].substring(0, 1) == '!') {
 		var self = this;
 		var command = data.ex[0].substring(1).toLowerCase();
-		if (self.listeners(command).length > 0) {
+		if (self.listeners('command:' + command).length > 0) {
 			data.ex.shift();
 			this.deleteMessage(data.id, function() {
-				self.emit(command, data);
+				self.emit('command:' + command, data);
 			});
 		}
 	}

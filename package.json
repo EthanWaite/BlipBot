@@ -2,6 +2,7 @@
   "name": "BlipBot",
   "description": "A very nice chat bot",
   "dependencies": {
+    "async": "0.9.0",
     "body-parser": "1.12.0",
     "ent": "2.2.0",
     "express": "4.12.0",

@@ -13,21 +13,53 @@
 		<div class="half">
 			<div class="content">
 				<div class="title">
-					<a class="fa fa-wrench"></a>
 					<h3>Modules</h3>
 				</div>
-				<ul>
+				<ul class="modules">
 					{{#each modules}}
-						<li>
-							<a class="fa fa-wrench"></a>
-							<a class="fa fa-times"></a>
-							{{module}}
+						<li data-module="{{id}}">
+							<a class="edit fa fa-wrench right"></a>
+							
+							{{#if enabled}}
+								<a class="state fa fa-check"></a>
+							{{else}}
+								<a class="state fa fa-times"></a>
+							{{/if}}
+							
+							{{name}}
 						</li>
 					{{/each}}
 				</ul>
 			</div>
 		</div>
 	</div>
+</div>
+
+<div class="modal">
+	{{#each modules}}
+		<div data-module="{{id}}">
+			<h2>{{name}}</h2>
+			<div class="module">
+				{{description}}
+
+				<h3>Commands</h3>
+				{{#each commands}}
+					<div class="command">!{{this}}</div>
+				{{/each}}
+
+				<div class="config">
+					<h3>Configuration</h3>
+					<div></div>
+				</div>
+			</div>
+			
+			<form class="add">
+				<div class="fields"></div>
+				<input type="submit" value="Add Item" />
+				<a class="cancel btn normal">Cancel</a>
+			</form>
+		</div>
+	{{/each}}
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -44,5 +76,100 @@
 		$line.find('.sender').text(data.user.name + ':');
 		$line.find('.message').text(data.msg);
 		$line.appendTo($('.logs'));
+		$('.logs').scrollTop($('.logs').scrollTop() + $line.height() + 24);
 	});
+	
+	$('.modules li[data-module] .state').click(function() {
+		var $btn = $(this);
+		var disabled = $(this).hasClass('fa-times');
+		socket.emit('modulestate', { id: $(this).parent().attr('data-module'), state: disabled }, function() {
+			$btn.removeClass('fa-times fa-check').addClass(disabled ? 'fa-check' : 'fa-times');
+		});
+	});
+	
+	$('.modules li[data-module] .edit').click(function() {
+		var $modal = $('.modal > div[data-module="' + $(this).parent().attr('data-module') + '"]');
+		refreshModule($modal, function() {
+			$modal.show().parent().fadeIn(300);
+		});
+	});
+	
+	$('.modal > div').on('click', '.config > h3 .fa-plus', function() {
+		var $modal = $(this).closest('.modal > div');
+		$modal.find('.module').fadeOut(300, function() {
+			$modal.find('.add').fadeIn(300);
+		});
+	});
+	
+	$('.modal .add').submit(function(e) {
+		e.preventDefault();
+		
+		var $modal = $(this).parent();
+		var data = { id: $modal.attr('data-module') };
+		$(this).serializeArray().forEach(function(input) {
+			data[input.name] = input.value;
+		});
+		
+		socket.emit('addconfig', data, function() {
+			refreshModule($modal, function() {
+				$modal.find('.add .cancel').click();
+			});
+		});
+	});
+	
+	$('.modal .add .cancel').click(function() {
+		$(this).parent().fadeOut(300, function() {
+			$(this).closest('.modal > div').find('.module').fadeIn(300);
+		});
+	});
+	
+	$('.modal > div').on('click', 'li .remove', function() {
+		console.log('click!');
+		$modal = $(this).closest('.modal > div');
+		socket.emit('removeconfig', { id: $modal.attr('data-module'), message: $(this).parent().attr('data-id') }, function() {
+			refreshModule($modal);
+		});
+	});
+	
+	$('.modal').click(function(e) {
+		$(this).fadeOut(300, function() {
+			$('.modal > div').hide();
+		});
+	});
+	
+	$('.modal > div').click(function(e) {
+		e.stopPropagation();
+	});
+	
+	function refreshModule($modal, cb) {
+		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config) {
+			if (config === undefined) {
+				$modal.find('.config').hide();
+			}else{
+				$title = $modal.find('.config > h3');
+				$config = $modal.find('.config > div').html('');
+				$title.find('.fa').remove();
+
+				if ('items' in config) {
+					var $result = $('<ul></ul>');
+					config.items.forEach(function(item) {
+						$('<li></li>').attr('data-id', item.id).text(item.content).append('<a class="remove fa fa-times"></a>').appendTo($result);
+					});
+					$config.append($result);
+				}
+
+				if ('fields' in config) {
+					var $fields = $modal.find('form.add .fields').html('');
+					$title.append('<a class="fa fa-plus"></a>');
+					config.fields.forEach(function(field) {
+						$fields.append('<input type="text" name="' + field.id + '" placeholder="' + field.label + '" />');
+					});
+				}
+			}
+			
+			if (cb !== undefined) {
+				cb();
+			}
+		});
+	}
 </script>
