@@ -3,7 +3,7 @@ var blacklist = [ 'cake', 'cookie' ];
 module.exports = {
 	id: 'filter',
 	name: 'Chat Filter',
-	description: 'This automatically deletes and eventually punishes users for messages with bad language or too mnay capital letters in their messages.',
+	description: 'This automatically deletes and eventually punishes users for messages with bad language or overuse of caps in their messages.',
 	commands: [],
 	enable: enable,
 	disable: disable
@@ -18,8 +18,12 @@ function disable(service) {
 }
 
 function dataHandler(data) {
+	if (this.hasRole([ 'mod', 'owner' ], data.user.role)) {
+		return;
+	}
+	
 	var self = this;
-	if (data.msg.length > 5 && !this.hasRole([ 'mod', 'owner' ], data.user.role)) {
+	if (data.msg.length > 5) {
 		var caps = 0;
 		for (var i = 0; i < data.msg.length; i++) {
 			if (/[A-Z]/.test(data.msg[i])) {
@@ -43,5 +47,19 @@ function dataHandler(data) {
 			});
 			break;
 		}
+	}
+	
+	var emotes = 0;
+	data.raw.forEach(function(part) {
+		if (part.type == 'emoticon') {
+			emotes++;
+		}
+	});
+	if (emotes > 3) {
+		this.deleteMessage(data.id, function() {
+			self.addWarning(data.user, 'excessive emoticons', function(warnings, max) {
+				self.sendMessage('Please avoid excessively using emoticons. (warning ' + warnings + '/' + max + ')', data.user.name);
+			});
+		});
 	}
 }

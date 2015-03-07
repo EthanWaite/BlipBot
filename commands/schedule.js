@@ -1,3 +1,4 @@
+var mongodb = require('mongodb');
 var log = require('log4js').getLogger('SCHEDULE');
 
 module.exports = {
@@ -12,8 +13,8 @@ module.exports = {
 	remove: remove
 };
 
-function enable(service) {
-	service.scheduleInterval = 2;
+function enable(service, config) {
+	service.scheduleInterval = config.interval || 2;
 	service.scheduleMessages = [];
 	
 	service.db.collection('schedule').find({ service: service.id }).toArray(function(err, rows) {
@@ -42,10 +43,18 @@ function config(service, cb) {
 			items: items,
 			fields: [
 				{
-					label: 'Enter your message here...',
+					label: 'Your scheduled message',
 					id: 'message'
 				}
-			]
+			],
+			config: [
+				{
+					label: 'Interval',
+					id: 'interval',
+					type: 'number',
+					default: 2,
+				}
+			],
 		});
 	});
 }
@@ -61,8 +70,7 @@ function add(service, db, data, cb) {
 }
 
 function remove(service, db, data, cb) {
-	console.log({ service: service.id, _id: data.message });
-	db.collection('schedule').remove({ service: service.id, _id: data.message }, function(err) {
+	db.collection('schedule').remove({ service: service.id, _id: new mongodb.ObjectID(data.message) }, function(err) {
 		if (err) {
 			return log.warn(err);
 		}

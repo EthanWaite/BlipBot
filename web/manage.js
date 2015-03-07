@@ -1,3 +1,4 @@
+var mongodb = require('mongodb');
 var async = require('async');
 
 module.exports = function(app) {
@@ -13,7 +14,18 @@ module.exports = function(app) {
 				cb();
 			});
 		}, function() {
-			res.render('manage', { title: 'Manage Channel', service: req.service, modules: modules });
+			app.get('db').collection('warnings').find({ service: req.service._id }).toArray(function(err, rows) {
+				var users = {};
+				rows.forEach(function(row) {
+					if (!(row.user in users)) {
+						users[row.user] = [];
+					}
+					row.date = new mongodb.ObjectID(row._id).getTimestamp();
+					users[row.user].push(row);
+				});
+				
+				res.render('manage', { title: 'Manage Channel', service: req.service, modules: modules, warnings: users });
+			});
 		});
 	});
 };

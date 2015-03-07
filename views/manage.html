@@ -8,6 +8,18 @@
 				</div>
 				<div class="logs"></div>
 			</div>
+			
+			<div class="content">
+				<div class="title">
+					<a class="fa fa-wrench"></a>
+					<h3>Warnings</h3>
+				</div>
+				<ul class="warnings">
+					{{#each warnings}}
+						<li>{{@value}}</li>
+					{{/each}}
+				</ul>
+			</div>
 		</div>
 
 		<div class="half">
@@ -31,6 +43,14 @@
 					{{/each}}
 				</ul>
 			</div>
+			
+			<div class="content">
+				<div class="title">
+					<a class="fa fa-wrench"></a>
+					<h3>Statistics</h3>
+				</div>
+				<div></div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -42,14 +62,21 @@
 			<div class="module">
 				{{description}}
 
-				<h3>Commands</h3>
-				{{#each commands}}
-					<div class="command">!{{this}}</div>
-				{{/each}}
+				{{#if commands.length}}
+					<h3>Commands</h3>
+					{{#each commands}}
+						<div class="command">!{{this}}</div>
+					{{/each}}
+				{{/if}}
 
-				<div class="config">
-					<h3>Configuration</h3>
+				<div class="messages">
+					<h3>Messages</h3>
 					<div></div>
+				</div>
+				
+				<div class="config">
+					<h3>Configuration<span></span></h3>
+					<form></form>
 				</div>
 			</div>
 			
@@ -94,7 +121,7 @@
 		});
 	});
 	
-	$('.modal > div').on('click', '.config > h3 .fa-plus', function() {
+	$('.modal > div').on('click', '.messages > h3 .fa-plus', function() {
 		var $modal = $(this).closest('.modal > div');
 		$modal.find('.module').fadeOut(300, function() {
 			$modal.find('.add').fadeIn(300);
@@ -124,10 +151,23 @@
 	});
 	
 	$('.modal > div').on('click', 'li .remove', function() {
-		console.log('click!');
 		$modal = $(this).closest('.modal > div');
 		socket.emit('removeconfig', { id: $modal.attr('data-module'), message: $(this).parent().attr('data-id') }, function() {
 			refreshModule($modal);
+		});
+	});
+	
+	$('.modal .config').on('keyup', 'input', function() {
+		var $status = $(this).closest('.config').find('h3').find('span');
+		$status.text('Saving changes...');
+		
+		var data = { id: $(this).closest('.modal > div').attr('data-module'), config: {} };
+		$(this).closest('form').serializeArray().forEach(function(input) {
+			data.config[input.name] = input.value;
+		});
+		
+		socket.emit('setconfig', data, function(err) {
+			$status.text(err || 'Changes saved.');
 		});
 	});
 	
@@ -142,27 +182,41 @@
 	});
 	
 	function refreshModule($modal, cb) {
-		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config) {
-			if (config === undefined) {
+		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config, values) {
+			if (config === undefined || config.length == 0) {
 				$modal.find('.config').hide();
 			}else{
-				$title = $modal.find('.config > h3');
-				$config = $modal.find('.config > div').html('');
+				$title = $modal.find('.messages > h3');
+				$list = $modal.find('.messages > div').html('');
+				$config = $modal.find('.config > form').html('');
 				$title.find('.fa').remove();
 
 				if ('items' in config) {
-					var $result = $('<ul></ul>');
-					config.items.forEach(function(item) {
-						$('<li></li>').attr('data-id', item.id).text(item.content).append('<a class="remove fa fa-times"></a>').appendTo($result);
-					});
-					$config.append($result);
+					if (config.items.length == 0) {
+						$list.html('<p>There are no items configured here yet. Go ahead and add one!</p>');
+					}else{
+						var $result = $('<ul></ul>');
+						config.items.forEach(function(item) {
+							$('<li></li>').attr('data-id', item.id).text(item.content).append('<a class="remove fa fa-times"></a>').appendTo($result);
+						});
+						$list.append($result);							
+					}
 				}
 
 				if ('fields' in config) {
 					var $fields = $modal.find('form.add .fields').html('');
 					$title.append('<a class="fa fa-plus"></a>');
 					config.fields.forEach(function(field) {
-						$fields.append('<input type="text" name="' + field.id + '" placeholder="' + field.label + '" />');
+						$('<input type="text" />').attr('name', field.id).attr('placeholder', field.label).appendTo($fields);
+					});
+				}
+				
+				if ('config' in config) {
+					config.config.forEach(function(field) {
+						$field = $('<div></div>');
+						$('<label></label>').text(field.label).appendTo($field);
+						$('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', values[field.id] || 2).appendTo($field);
+						$field.appendTo($config);
 					});
 				}
 			}

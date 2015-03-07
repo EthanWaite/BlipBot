@@ -52,21 +52,28 @@ module.exports = web = function(config, db, services, modules) {
 			if ('id' in data && 'state' in data && data.id in modules) {
 				var id = c.service._id;
 				var m = modules[data.id];
-				app.get('db').collection('modules').update({ service: id }, { service: id, module: m.id, enabled: data.state === true }, { upsert: true }, function(err) {
+				var params = { service: id, module: m.id };
+				app.get('db').collection('modules').update(params, { service: id, module: m.id, enabled: data.state === true }, { upsert: true }, function(err) {
 					if (err) {
-						log.warn(err);
+						return log.warn(err);
 					}
 					
-					if (id in services) {
-						var service = services[id];
-						if (data.state) {
-							m.enable(service);
-						}else{
-							m.disable(service);
+					app.get('db').collection('modules').find(params).toArray(function(err, rows) {
+						if (err) {
+							throw err;
 						}
-					}
-					
-					cb();
+						
+						if (id in services) {
+							var service = services[id];
+							if (data.state) {
+								m.enable(service, rows[0].config || {});
+							}else{
+								m.disable(service, rows[0].config || {});
+							}
+						}
+						
+						cb();
+					});
 				});
 			}
 		});
@@ -75,10 +82,34 @@ module.exports = web = function(config, db, services, modules) {
 			if ('id' in data && data.id in modules && c.service._id in services) {
 				var m = modules[data.id];
 				if ('config' in m) {
-					m.config(services[c.service._id], cb);
+					app.get('db').collection('modules').find({ service: c.service._id, module: modules[data.id].id }).toArray(function(err, rows) {
+						if (err) {
+							return log.warn(err);
+						}
+						
+						m.config(services[c.service._id], function(config) {
+							cb(config, rows[0].config || {});
+						});
+					});
 				}else{
 					cb();
 				}
+			}
+		});
+		
+		c.on('setconfig', function(data, cb) {
+			if ('id' in data && 'config' in data && data.id in modules && c.service._id in services) {
+				var m = modules[data.id];
+				app.get('db').collection('modules').update({ service: c.service._id, module: m.id }, { service: c.service._id, module: m.id, config: data.config }, function(err) {
+					if (err) {
+						return log.warn(err);
+					}
+					
+					var service = services[c.service._id];
+					m.disable(service);
+					m.enable(service, data.config);
+					cb();
+				});
 			}
 		});
 		

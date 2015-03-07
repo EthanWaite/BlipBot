@@ -50,7 +50,7 @@ function registerService(db, data) {
 	db.collection('modules').find({ service: data._id }).toArray(function(err, rows) {
 		rows.forEach(function(row) {
 			if (row.enabled && row.module in modules) {
-				modules[row.module].enable(service);
+				modules[row.module].enable(service, row.config || {});
 			}
 		});
 	});

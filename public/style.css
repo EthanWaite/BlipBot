@@ -279,6 +279,12 @@ input[type="submit"]:hover, .btn:hover {
 	opacity:1;
 }
 
+.modal h3 span {
+	font-size:12px;
+	color:#ccc;
+	float:right;
+}
+
 .modal .command, .modal li {
 	border-bottom:solid 1px #eee;
 	padding:9px 0px;
@@ -292,6 +298,20 @@ input[type="submit"]:hover, .btn:hover {
 	width:100%;
 	box-sizing:border-box;
 	margin-bottom:9px;
+}
+
+.modal .config form > div {
+	margin:6px 0px;
+}
+
+.modal .config form label {
+	display:inline-block;
+	padding:12px 0px;
+}
+
+.modal .config form input {
+	width:33%;
+	float:right;
 }
 
 .footer {

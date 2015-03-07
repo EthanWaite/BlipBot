@@ -86,6 +86,7 @@ beam.prototype.getSocket = function(user, endpoint) {
 					time: new Date().getTime(),
 					msg: text,
 					ex: text.split(' '),
+					raw: data.data.message,
 					id: data.data.id,
 					user: {
 						id: data.data.user_id,
@@ -113,7 +114,7 @@ beam.prototype.getWarnings = function(user, cb) {
 beam.prototype.addWarning = function(user, reason, cb) {
 	log.warn('Adding warning...');
 	var self = this;
-	this.db.collection('warnings').insert({ service: this.id, user: user.id, name: user.name, time: new Date().getTime(), reason: reason, expired: false }, function(err) {
+	this.db.collection('warnings').insert({ service: this.id, user: user.id, name: user.name, reason: reason, expired: false }, function(err) {
 		log.debug('Callback');
 		if (err) {
 			throw err;
