@@ -3,6 +3,7 @@
   "description": "A very nice chat bot",
   "dependencies": {
     "async": "0.9.0",
+    "bcrypt": "0.8.1",
     "body-parser": "1.12.0",
     "cheerio": "0.18.0",
     "ent": "2.2.0",
@@ -14,6 +15,7 @@
     "mongodb": "1.4.31",
     "request": "2.53.0",
     "socket.io": "1.3.4",
+    "validator": "3.33.0",
     "ws": "0.7.1"
   }
 }

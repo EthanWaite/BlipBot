@@ -7,12 +7,12 @@ var log = require('log4js').getLogger('BEAM');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
-module.exports = beam = function(db, config, id, channel) {
+module.exports = beam = function(db, config, id, channel, cb) {
 	this.db = db;
 	this.config = config;
 	this.id = id;
 	this.channel = channel;
-	this.messages = [];
+	this.reconnect = true;
 	this.warnings = {};
 	this.maxwarnings = 5;
 	
@@ -20,9 +20,16 @@ module.exports = beam = function(db, config, id, channel) {
 	
 	var self = this;
 	self.getAuth(config.username, config.password, function(id) {
-		self.getChannel(channel, function(channel) {
+		self.getChannel(channel, function(err, channel) {
+			if (err) {
+				if (cb !== undefined) {
+					cb(err);
+				}
+				return;
+			}
+			
 			self.cid = channel.id;
-			self.getSocket(id);
+			self.connect(id);
 		});
 	});
 };
@@ -38,12 +45,16 @@ beam.prototype.getAuth = function(username, password, cb) {
 
 beam.prototype.getChannel = function(username, cb) {
 	this.query('get', 'channels/' + username, null, function(err, res, body) {
+		if (res.statusCode == 404) {
+			return cb(new Error('channel does not exist'));	
+		}
+		
 		log.info('Retrieved channel.');
-		cb(JSON.parse(body));
+		cb(null, JSON.parse(body));
 	});
 };
 
-beam.prototype.getSocket = function(user, endpoint) {
+beam.prototype.connect = function(user, endpoint) {
 	if (endpoint === undefined) {
 		endpoint = 0;	
 	}
@@ -59,7 +70,7 @@ beam.prototype.getSocket = function(user, endpoint) {
 		var server = endpoints[endpoint];
 		
 		log.info('Connecting to web socket at ' + server + ' (endpoint ' + endpoint + ')...');
-		socket = new websocket(server, { headers: { 'User-Agent': agent } });
+		var socket = new websocket(server, { headers: { 'User-Agent': agent } });
 		
 		socket.on('open', function() {
 			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.cid, user, data.authkey ] }));
@@ -70,36 +81,56 @@ beam.prototype.getSocket = function(user, endpoint) {
 		});
 		
 		socket.on('close', function() {
-			log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
-			setTimeout(function() {
-				self.getSocket(user, endpoint + 1);
-			}, 3000);
+			if (self.reconnect) {
+				log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
+				setTimeout(function() {
+					self.connect(user, endpoint + 1);
+				}, 3000);
+			}
 		});
 		
 		socket.on('message', function(data) {
 			log.debug('Raw: ' + data);
 			data = JSON.parse(data);
-			if (data.type == 'event' && data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
-				var text = self.parseMessage(data.data.message);
-				var message = {
-					service: 'beam',
-					time: new Date().getTime(),
-					msg: text,
-					ex: text.split(' '),
-					raw: data.data.message,
-					id: data.data.id,
-					user: {
-						id: data.data.user_id,
-						name: data.data.user_name,
-						role: data.data.user_role
-					}
-				};
-				
-				self.handleMessage(message);
-				self.messages.unshift(message);
+			
+			if (data.type == 'reply' && data.error == null && 'authenticated' in data.data && data.data.authenticated) {
+				self.emit('connected');	
+			}
+			
+			if (data.type == 'event') {
+				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
+					self.emit('authenticated');
+				}else if (data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
+					var text = self.parseMessage(data.data.message);
+					var message = {
+						service: 'beam',
+						time: new Date().getTime(),
+						msg: text,
+						ex: text.split(' '),
+						raw: data.data.message,
+						id: data.data.id,
+						user: {
+							id: data.data.user_id,
+							name: data.data.user_name,
+							role: data.data.user_role
+						}
+					};
+
+					self.handleMessage(message);
+					//self.messages.unshift(message);
+				}
 			}
 		});
+		
+		self.socket = socket;
 	});
+};
+
+beam.prototype.disconnect = function() {
+	this.reconnect = false;
+	if ('socket' in this && this.socket.readyState == 1) {
+		this.socket.close();
+	}
 };
 
 beam.prototype.getWarnings = function(user, cb) {
@@ -152,7 +183,7 @@ beam.prototype.query = function(method, target, form, cb) {
 };
 
 beam.prototype.sendMessage = function(msg, recipient) {
-	if (socket.readyState != 1) {
+	if (this.socket.readyState != 1) {
 		return log.warn('Discarding message, as connection is offline.');	
 	}
 	
@@ -160,7 +191,7 @@ beam.prototype.sendMessage = function(msg, recipient) {
 		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;	
 	}
 	
-	socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
+	this.socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 
 beam.prototype.deleteMessage = function(id, cb) {

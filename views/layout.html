@@ -8,6 +8,11 @@
 	
 	<body>
 		<script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+		
+		{{#if error}}
+			<div class="error">{{error}}</div>
+		{{/if}}
+		
 		<div class="banner">
 			<header>
 				<div class="header">

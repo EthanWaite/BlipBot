@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>BlipBot - Chat Bot for Livestreamers</title>
+		<link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+		<link href="../public/style.css" rel="stylesheet" type="text/css" />
+	</head>
+	
+	<body>
+		<div class="banner">
+			<header>
+				<div class="header">
+					<div class="container">
+						<div class="nav">
+							<a href="#" data-modal="login">Sign in</a>
+						</div>
+						
+						<h1>BlipBot</h1>
+					</div>
+				</div>
+			</header>
+			
+			<div class="welcome container">
+				<h1>The custom chat bot for your livestream</h1>
+				<h2>Commands, schedules, and chat moderation utilities.</h2>
+				
+				<form class="signup">
+					<input type="text" placeholder="Enter your Beam username" />
+					<input type="submit" value="Sign up" />
+				</form>
+			</div>
+		</div>
+		
+		<div class="container">
+			<div class="features">
+				<div>
+					<span class="fa fa-5x fa-comments"></span>
+					<h3>Perfect for chat moderation</h3>
+					<p>The bot includes chat filters, and many commands for interacting with the channel chat.</p>
+				</div>
+				
+				<div>
+					<span class="fa fa-5x fa-rocket"></span>
+					<h3>Configurable and modular</h3>
+					<p>All functions of the bot can be toggled and configured from the web interface.</p>
+				</div>
+				
+				<div>
+					<span class="fa fa-5x fa-cogs"></span>
+					<h3>Quick, simple setup</h3>
+					<p>We will setup and host the bot for your Beam channel. All we need is your Beam username.</p>
+				</div>
+				
+				<div>
+					<span class="fa fa-5x fa-heart"></span>
+					<h3>Free and open source</h3>
+					<p>BlipBot is completely free to use. If you're a developer, the source is also available on GitHub.</p>
+				</div>
+			</div>
+		</div>
+		
+		<footer>
+			<div class="footer container">
+				<div class="right">
+					<a href="http://www.flickr.com/photos/webtreatsetc/5436446554/">Photo has been altered under CC BY 2.0</a>
+				</div>
+				&copy; 2015 Dead-i
+			</div>
+		</footer>
+		
+		<div class="modal">
+			<div data-modal="login">
+				<form method="post" action="http://blipbot.dead-i.co.uk/login">
+					<h2>Sign in</h2>
+					<input type="text" name="username" placeholder="Username" />
+					<input type="password" name="password" placeholder="Password" />
+					<input type="submit" value="Login" />
+					<p class="small"><a href="#">Forgot Password</a></p>
+				</form>
+			</div>
+			
+			<div data-modal="signup">
+				<form class="signup">
+					<h2>Getting started</h2>
+					<input type="text" name="username" placeholder="Username" />
+					<input type="email" name="email" placeholder="Email address" />
+					<input type="password" name="password" placeholder="Password" />
+					
+					<p>
+						<!-- More services, soon -->
+						<input type="text" name="beam" placeholder="Beam channel name" class="service" />
+					</p>
+					
+					<input type="submit" value="Create Account" />
+				</form>
+			</div>
+			
+			<div data-modal="finish">
+				<h2>Nearly there!</h2>
+				<p>To verify that you are the owner of the channel, please give BlipBot moderator abilities in your Beam channel.</p>
+				<p>You can do this by running the following command:</p>
+				<pre>/mod BlipBot</pre>
+				<div class="center">
+					<span class="fa fa-spin fa-circle-o-notch"></span>
+					<div>Timeout: <span class="expiry">10</span></div>
+				</div>
+			</div>
+			
+			<div data-modal="offline">
+				<span class="fa fa-5x fa-frown-o"></span>
+				<h2>Well, that's not good.</h2>
+				<p>I can't seem to connect to BlipBot right now. It might be that BlipBot is currently offline, or unable to service requests.</p>
+				<p>Please try again a bit later. Sorry. :(</p>
+			</div>
+		</div>
+		
+		<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+		<script src="https://cdn.socket.io/socket.io-1.3.4.js"></script>
+		<script>
+			var socket = io('http://localhost:8080/');
+			
+			$('a[data-modal]').click(function(e) {
+				showModal($(this).attr('data-modal'));
+				e.preventDefault();
+			});
+			
+			$('.modal').click(function() {
+				$('.modal, .modal > div').fadeOut(300);
+			});
+			
+			$('.modal > div').click(function(e) {
+				e.stopPropagation();
+			});
+			
+			$('.banner .signup').submit(function(e) {
+				var username = $('input', this).val();
+				if (username.length > 0) {
+					$('input[name="username"], input.service', showModal('signup')).val(username);
+				}
+				
+				e.preventDefault();
+			});
+			
+			$('.modal .signup').submit(function(e) {
+				e.preventDefault();
+				
+				$(this).parent().hide();
+				$modal = showModal('finish');
+				
+				var expiry = $('.expiry', $modal);
+				var start = expiry.text();
+				var interval = setInterval(function() {
+					expiry.text(expiry.text() - 1);
+					
+					if (expiry.text() <= 0) {
+						expiry.text(start);
+						showModal('signup');
+						clearTimeout(interval);
+					}
+				}, 1000);
+				
+				var data = {};
+				$(this).serializeArray().forEach(function(input) {
+					data[input.name] = input.value;
+				});
+				socket.emit('signup', data, function(err) {
+					if (err) {
+						error(err);
+						expiry.text(start);
+						showModal('signup');
+						clearTimeout(interval);
+						return;
+					}
+					
+					$login = $('.modal > div[data-modal="login"]');
+					$('input[name="username"]', $login).val(data.username);
+					$('input[name="password"]', $login).val(data.username);
+					$('form', $login).submit();
+				});
+			});
+			
+			function showModal(id) {
+				$('.modal > div').hide();
+				var $modal = $('.modal > div[data-modal="' + (socket.connected ? id : 'offline') + '"]').show();
+				$('.modal').fadeIn(300);
+				
+				$modal.find('input').first().focus();
+				return $modal;
+			}
+			
+			function error(err) {
+				$('<div class="error"></div>').text(err).prependTo($('body')).hide().fadeIn(500).delay(2000).fadeOut(500);	
+			}
+		</script>
+	</body>
+</html>

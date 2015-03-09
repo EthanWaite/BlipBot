@@ -34,7 +34,7 @@ function lastSeen(data) {
 	}
 
 	for (var name in this.userTimes) {
-		if (name == user) {
+		if (name.toLowerCase() == user.toLowerCase()) {
 			return this.sendMessage('I last saw @' + name + ' ' + moment(this.userTimes[name]).fromNow(), data.user.name);
 		}
 	}

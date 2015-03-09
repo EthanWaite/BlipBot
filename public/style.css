@@ -32,6 +32,24 @@ input[type="submit"]:hover, .btn:hover {
 	opacity:0.9;
 }
 
+pre {
+	color:#41007a;
+	border:dashed 1px #41007a;
+	border-radius:5px;
+	padding:12px;
+}
+
+.error {
+	position:fixed;
+	top:0px;
+	right:0px;
+	left:0px;
+	background-color:#d35555;
+	color:#fff;
+	padding:12px;
+	z-index:999;
+}
+
 .btn {
 	padding:13px 24px;
 }
@@ -60,7 +78,21 @@ input[type="submit"]:hover, .btn:hover {
 }
 
 .banner .welcome h2 {
-	margin:0px 0px 64px 0px;	
+	margin:0px 0px 64px 0px;
+}
+
+.banner .signup input[type="text"] {
+	min-width:400px;
+	box-shadow:0px 0px 20px 8px rgba(0, 0, 0, 0.5);
+	border:none;
+	font-size:18px;
+	outline:none;
+	margin-bottom:16px;
+}
+
+.banner input[type="submit"] {
+	border:none;
+	padding:16px 24px 14px 24px;
 }
 
 .banner .header {
@@ -89,15 +121,6 @@ input[type="submit"]:hover, .btn:hover {
 .container {
 	width:1000px;
 	margin:0px auto;
-}
-
-.signup input[type="text"] {
-	min-width:400px;
-	box-shadow:0px 0px 20px 8px rgba(0, 0, 0, 0.5);
-	border:none;
-	font-size:18px;
-	outline:none;
-	margin-bottom:16px;
 }
 
 .features {
@@ -227,7 +250,7 @@ input[type="submit"]:hover, .btn:hover {
 }
 
 .content .logs {
-	height:307px;
+	height:351px;
 	overflow-y:auto;
 }
 
@@ -250,6 +273,15 @@ input[type="submit"]:hover, .btn:hover {
 	background-color:rgba(0, 0, 0, 0.8);
 }
 
+.modal a {
+	text-decoration:none;
+	color:#666;
+}
+
+.modal a:hover {
+	text-decoration:underline;
+}
+
 .modal > div {
 	display:none;
 	width:480px;
@@ -257,6 +289,17 @@ input[type="submit"]:hover, .btn:hover {
 	border-radius:4px;
 	padding:16px;
 	margin:128px auto;
+}
+
+.modal > div[data-modal="login"] {
+	width:320px;
+}
+
+.modal > div[data-modal="offline"] .fa {
+	font-size:128px;
+	color:#41007a;
+	float:right;
+	margin:20px 20px;
 }
 
 .modal h2 {
@@ -285,6 +328,20 @@ input[type="submit"]:hover, .btn:hover {
 	float:right;
 }
 
+.modal .small {
+	font-size:12px;
+}
+
+.modal .service {
+	background-repeat:no-repeat;
+	background-position:13px;
+	padding-left:42px;
+}
+
+.modal .service[name="beam"] {
+	background-image:url('../public/beamicon.png');
+}
+
 .modal .command, .modal li {
 	border-bottom:solid 1px #eee;
 	padding:9px 0px;
@@ -294,7 +351,7 @@ input[type="submit"]:hover, .btn:hover {
 	display:none;
 }
 
-.modal input[type="text"] {
+.modal input[type="text"], .modal input[type="password"], .modal input[type="email"] {
 	width:100%;
 	box-sizing:border-box;
 	margin-bottom:9px;
@@ -312,6 +369,10 @@ input[type="submit"]:hover, .btn:hover {
 .modal .config form input {
 	width:33%;
 	float:right;
+}
+
+.center {
+	text-align:center;
 }
 
 .footer {

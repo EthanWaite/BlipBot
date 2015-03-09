@@ -4,6 +4,10 @@ var bodyparser = require('body-parser');
 var socketio = require('socket.io');
 var hbs = require('hbs');
 var http = require('http');
+var mongodb = require('mongodb');
+var async = require('async');
+var bcrypt = require('bcrypt');
+var validator = require('validator');
 var events = require('events').EventEmitter;
 var util = require('util');
 var log = require('log4js').getLogger('WEB');
@@ -34,12 +38,93 @@ module.exports = web = function(config, db, services, modules) {
 	});
 	io.on('connection', function(c) {
 		if (!('userid' in c.request.session)) {
-			return c.disconnect(); // Noooope.
+			c.on('signup', function(data, cb) {
+				if (!('username' in data && 'password' in data && 'email' in data && 'beam' in data)) {
+					return cb('Invalid parameters.');
+				}
+				
+				if (validator.isNull(data.username) || validator.isNull(data.password) || validator.isNull(data.beam) || !validator.isEmail(data.email)) {
+					return cb('Please ensure you have entered valid information.');	
+				}
+				
+				async.waterfall([
+					function(callback) {
+						app.get('db').collection('services').find({ type: 'beam', channel: data.beam }).toArray(function(err, rows) {
+							if (err) {
+								return callback(err);
+							}
+							if (rows.length > 0) {
+								return cb('This channel is already registered.');
+							}
+							callback();
+						});
+					},
+					
+					function(callback) {
+						app.get('db').collection('users').find({ $or: [ { username: data.username, email: data.email} ] }).toArray(function(err, rows) {
+							if (err) {
+								return callback(err);
+							}
+							if (rows.length > 0) {
+								return cb('You already own an account. Please log in.');
+							}
+							callback();
+						});
+					},
+					
+					function(callback) {
+						var service = require('../services/beam');
+						service = new service(app.get('db'), config.services['beam'], null, data.beam, function(err) {
+							return cb('The channel you have specified does not exist.');	
+						});
+
+						var timeout = setTimeout(function() {
+							cb('Your request has expired. Please try again.');
+							service.disconnect();
+						}, 10000);
+
+						service.on('connected', function() {
+							service.sendMessage('I am a Beam chat bot, and I have been asked to join here from the web interface. Please type /mod BlipBot if you authorized this request.');
+						});
+
+						service.on('authenticated', function() {
+							service.sendMessage('BlipBot is now online. You can now manage me from the web interface.');
+							clearTimeout(timeout);
+							callback();
+						});
+					},
+					
+					function(callback) {
+						bcrypt.hash(data.password, 8, function(err, hash) {
+							if (err) {
+								return callback(err);
+							}
+							app.get('db').collection('users').insert({ username: data.username, password: hash, email: data.email }, function(err, record) {
+								if (err) {
+									return callback(err);
+								}
+								callback(null, record[0]._id);
+							});
+						});
+					},
+					
+					function(id, callback) {
+						app.get('db').collection('services').insert({ user: id, type: 'beam', channel: data.beam }, callback);
+					}
+				], function(err) {
+					if (err) {
+						log.warn(err);
+						return cb('Internal error.');
+					}
+					cb();
+				});
+			});
+			return;
 		}
 		
 		c.on('service', function(data, cb) {
 			if ('type' in data) {
-				app.get('db').collection('services').find({ user: c.request.session.userid, type: data.type }).toArray(function(err, rows) {
+				app.get('db').collection('services').find({ user: new mongodb.ObjectID(c.request.session.userid), type: data.type }).toArray(function(err, rows) {
 					if (!err && rows.length > 0) {
 						c.service = rows[0];
 						cb();
@@ -50,6 +135,7 @@ module.exports = web = function(config, db, services, modules) {
 		
 		c.on('modulestate', function(data, cb) {
 			if ('id' in data && 'state' in data && data.id in modules) {
+				console.log(c.service);
 				var id = c.service._id;
 				var m = modules[data.id];
 				var params = { service: id, module: m.id };
@@ -126,12 +212,8 @@ module.exports = web = function(config, db, services, modules) {
 		});
 	});
 	
-	this.on('chat', function(data) {
-		io.sockets.sockets.forEach(function(c) {
-			if ('service' in c && c.service.type == data.service) {
-				c.emit('chat', data);
-			}
-		});
+	app.get('/status', function(req, res) {
+		res.json({ status: true });
 	});
 	
 	require('./auth')(app);
