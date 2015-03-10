@@ -31,7 +31,7 @@ module.exports = web = function(config, db, services, modules) {
 	});
 	app.use(ses);
 	
-	var server = http.Server(app).listen(8080);
+	var server = http.Server(app).listen(config.general.port);
 	var io = socketio(server);
 	io.use(function(c, next) {
 		ses(c.request, c.request.res, next);
