@@ -24,6 +24,11 @@ module.exports = web = function(config, db, services, modules) {
 	app.use(express.static('public'));
 	app.use(bodyparser.urlencoded({ extended: false }));
 	
+	app.use(function(req, res, next) {
+		res.header('Access-Control-Allow-Origin', 'http://blipbot.dead-i.co.uk/');
+		next();
+	});
+	
 	var ses = session({
 		secret: config.general.secret,
 		saveUninitialized: true,
