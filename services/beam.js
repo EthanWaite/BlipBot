@@ -13,6 +13,7 @@ module.exports = beam = function(db, config, id, channel, cb) {
 	this.id = id;
 	this.channel = channel;
 	this.reconnect = true;
+	this.messages = [];
 	this.warnings = {};
 	this.maxwarnings = 5;
 	
@@ -117,7 +118,7 @@ beam.prototype.connect = function(user, endpoint) {
 					};
 
 					self.handleMessage(message);
-					//self.messages.unshift(message);
+					self.messages.unshift(message);
 				}
 			}
 		});

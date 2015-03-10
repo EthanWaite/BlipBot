@@ -27,9 +27,9 @@ function clear(data) {
 	}
 	
 	var self = this;
-	this.messages.forEach(function(data) {
-		if (data.user.name == data.ex[0]) {
-			self.deleteMessage(data.id);
+	this.messages.forEach(function(msg) {
+		if (msg.user.name == data.ex[0]) {
+			self.deleteMessage(msg.id);
 		}
 	});
 
@@ -42,8 +42,8 @@ function clearAll(data) {
 	}
 	
 	var self = this;
-	this.messages.forEach(function(data) {
-		self.deleteMessage(data.id);
+	this.messages.forEach(function(msg) {
+		self.deleteMessage(msg.id);
 	});
 
 	this.sendMessage('The channel chat has been cleared.', data.user.name);

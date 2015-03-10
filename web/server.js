@@ -41,6 +41,8 @@ module.exports = web = function(config, db, services, modules) {
 	io.use(function(c, next) {
 		ses(c.request, c.request.res, next);
 	});
+	
+	var pending = [];
 	io.on('connection', function(c) {
 		if (!('userid' in c.request.session)) {
 			c.on('signup', function(data, cb) {
@@ -52,6 +54,11 @@ module.exports = web = function(config, db, services, modules) {
 					return cb('Please ensure you have entered valid information.');	
 				}
 				
+				if (pending.indexOf(data.beam.toLowerCase()) != -1) {
+					return cb('Sorry, but there is already a pending signup request using this channel. Please try again shortly.');
+				}
+				pending.push(data.beam.toLowerCase());
+				
 				async.waterfall([
 					function(callback) {
 						app.get('db').collection('services').find({ type: 'beam', channel: data.beam }).toArray(function(err, rows) {
@@ -59,7 +66,7 @@ module.exports = web = function(config, db, services, modules) {
 								return callback(err);
 							}
 							if (rows.length > 0) {
-								return cb('This channel is already registered.');
+								return callback('This channel is already registered.');
 							}
 							callback();
 						});
@@ -71,7 +78,7 @@ module.exports = web = function(config, db, services, modules) {
 								return callback(err);
 							}
 							if (rows.length > 0) {
-								return cb('You already own an account. Please log in.');
+								return callback('You already own an account. Please log in.');
 							}
 							callback();
 						});
@@ -80,13 +87,13 @@ module.exports = web = function(config, db, services, modules) {
 					function(callback) {
 						var service = require('../services/beam');
 						service = new service(app.get('db'), config.services['beam'], null, data.beam, function(err) {
-							return cb('The channel you have specified does not exist.');	
+							return callback('The channel you have specified does not exist.');	
 						});
 
 						var timeout = setTimeout(function() {
-							cb('Your request has expired. Please try again.');
+							callback('Your request has expired. Please try again.');
 							service.disconnect();
-						}, 10000);
+						}, 60000);
 
 						service.on('connected', function() {
 							service.sendMessage('I am a Beam chat bot, and I have been asked to join here from the web interface. Please type /mod BlipBot if you authorized this request.');
@@ -117,9 +124,10 @@ module.exports = web = function(config, db, services, modules) {
 						app.get('db').collection('services').insert({ user: id, type: 'beam', channel: data.beam }, callback);
 					}
 				], function(err) {
+					pending.splice(pending.indexOf(data.beam.toLowerCase()), 1);
 					if (err) {
 						log.warn(err);
-						return cb('Internal error.');
+						return cb(typeof err === 'string' ? err : 'Internal error.');
 					}
 					cb();
 				});
