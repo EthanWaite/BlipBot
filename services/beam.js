@@ -74,6 +74,7 @@ beam.prototype.connect = function(user, endpoint) {
 		var socket = new websocket(server, { headers: { 'User-Agent': agent } });
 		
 		socket.on('open', function() {
+			self.uptime = new Date().getTime();
 			socket.send(JSON.stringify({ type: 'method', method: 'auth', arguments: [ self.cid, user, data.authkey ] }));
 		});
 		

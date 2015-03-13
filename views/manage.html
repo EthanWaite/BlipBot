@@ -3,7 +3,6 @@
 		<div class="half">
 			<div class="content">
 				<div class="title">
-					<a class="fa fa-wrench"></a>
 					<h3>Chat Logs</h3>
 				</div>
 				<div class="logs"></div>
@@ -163,8 +162,9 @@
 	
 	function refreshModule($modal, cb) {
 		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config, values) {
+			console.log('callback');
 			if (config === undefined || config.length == 0) {
-				$modal.find('.config').hide();
+				$modal.find('.messages, .config').hide();
 			}else{
 				$title = $modal.find('.messages > h3');
 				$list = $modal.find('.messages > div').html('');

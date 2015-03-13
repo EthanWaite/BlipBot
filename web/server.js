@@ -37,7 +37,7 @@ module.exports = web = function(config, db, services, modules) {
 	app.use(ses);
 	
 	var server = http.Server(app).listen(config.general.port);
-	var io = socketio(server);
+	io = socketio(server);
 	io.use(function(c, next) {
 		ses(c.request, c.request.res, next);
 	});
@@ -61,7 +61,7 @@ module.exports = web = function(config, db, services, modules) {
 				
 				async.waterfall([
 					function(callback) {
-						app.get('db').collection('services').find({ type: 'beam', channel: data.beam }).toArray(function(err, rows) {
+						app.get('db').collection('services').find({ type: 'beam', channel: { $regex: '^' + data.beam + '$', $options: 'i' } }).toArray(function(err, rows) {
 							if (err) {
 								return callback(err);
 							}
@@ -141,6 +141,12 @@ module.exports = web = function(config, db, services, modules) {
 					if (!err && rows.length > 0) {
 						c.service = rows[0];
 						cb();
+						
+						if (c.service._id in services) {
+							services[c.service._id].messages.slice(-20).forEach(function(msg) {
+								c.emit('chat', msg);
+							});
+						}
 					}
 				});
 			}
@@ -157,14 +163,17 @@ module.exports = web = function(config, db, services, modules) {
 						return log.warn(err);
 					}
 					
+					log.debug('Module updated.');
 					app.get('db').collection('modules').find(params).toArray(function(err, rows) {
 						if (err) {
 							throw err;
 						}
 						
+						log.debug('Changing state...');
 						if (id in services) {
 							var service = services[id];
 							if (data.state) {
+								log.debug('Enabling module.');
 								m.enable(service, rows[0].config || {});
 							}else{
 								m.disable(service, rows[0].config || {});
@@ -223,6 +232,16 @@ module.exports = web = function(config, db, services, modules) {
 				modules[data.id].remove(services[c.service._id], db, data, cb);
 			}
 		});
+	});
+	
+	this.on('chat', function(data, id) {
+		var sockets = io.sockets.connected;
+		for (var i in sockets) {
+			var c = sockets[i];
+			if ('service' in c && c.service._id.toString() == id.toString()) {
+				c.emit('chat', data);
+			}
+		}
 	});
 	
 	app.get('/status', function(req, res) {
