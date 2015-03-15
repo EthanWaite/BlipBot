@@ -178,10 +178,10 @@ module.exports = web = function(config, db, services, modules) {
 		
 		c.on('modulestate', function(data, cb) {
 			if ('id' in data && 'state' in data && data.id in modules) {
-				log.info('Toggling module ' + m.id + ' for ' + c.service.channel + '...');
 				var id = c.service._id;
 				var m = modules[data.id];
 				var params = { service: id, module: m.id };
+				log.info('Toggling module ' + m.id + '...');
 				app.get('db').collection('modules').update(params, { service: id, module: m.id, enabled: data.state === true }, { upsert: true }, function(err) {
 					if (err) {
 						return log.warn(err);
