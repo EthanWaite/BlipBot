@@ -7,9 +7,9 @@ var log = require('log4js').getLogger('BEAM');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
-module.exports = beam = function(db, config, id, channel, cb) {
-	this.db = db;
+module.exports = beam = function(config, db, id, channel, cb) {
 	this.config = config;
+	this.db = db;
 	this.id = id;
 	this.channel = channel;
 	this.reconnect = true;
@@ -129,6 +129,7 @@ beam.prototype.connect = function(user, endpoint) {
 };
 
 beam.prototype.disconnect = function() {
+	log.info('Disconnecting from ' + this.channel + '.');
 	this.reconnect = false;
 	if ('socket' in this && this.socket.readyState == 1) {
 		this.socket.close();
@@ -136,6 +137,7 @@ beam.prototype.disconnect = function() {
 };
 
 beam.prototype.getWarnings = function(user, cb) {
+	log.info('Retrieving warnigns for user ' + user.name + '...');
 	this.db.collection('warnings').find({ service: this.id, user: user.id, expired: false }).count(function(err, count) {
 		if (err) {
 			throw err;
@@ -145,7 +147,7 @@ beam.prototype.getWarnings = function(user, cb) {
 };
 
 beam.prototype.addWarning = function(user, reason, cb) {
-	log.warn('Adding warning...');
+	log.info('Adding warning for user ' + user.name + '...');
 	var self = this;
 	this.db.collection('warnings').insert({ service: this.id, user: user.id, name: user.name, reason: reason, expired: false }, function(err) {
 		log.debug('Callback');
@@ -167,6 +169,7 @@ beam.prototype.addWarning = function(user, reason, cb) {
 };
 
 beam.prototype.resetWarnings = function(user) {
+	log.info('Resetting warnings for user ' + user.name + '...');
 	this.db.collection('warnings').update({ service: this.id, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
 		throw err;
 	});
@@ -193,6 +196,7 @@ beam.prototype.sendMessage = function(msg, recipient) {
 		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;	
 	}
 	
+	log.info('Sending message to ' + msg + ' in ' + this.channel + ': ' + msg);
 	this.socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 

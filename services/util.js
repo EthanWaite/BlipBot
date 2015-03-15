@@ -6,9 +6,9 @@ fs.readdirSync('commands').forEach(function(file) {
 	modules[command.id] = command;
 });
 
-exports.registerService = function(db, config, web, data) {
+exports.registerService = function(config, db, web, data) {
 	var service = require('./' + data.type);
-	service = new service(db, config.services[data.type], data._id, data.channel);
+	service = new service(config.services[data.type], db, data._id, data.channel);
 	service.on('data', function(chat) {
 		web.emit('chat', chat, data._id);
 	});

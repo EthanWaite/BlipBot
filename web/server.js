@@ -85,8 +85,10 @@ module.exports = web = function(config, db, services, modules) {
 					},
 					
 					function(callback) {
+						log.info('Joining channel ' + data.beam + ' for verification...');
+						
 						var service = require('../services/beam');
-						service = new service(app.get('db'), config.services['beam'], null, data.beam, function(err) {
+						service = new service(config.services['beam'], app.get('db'), null, data.beam, function(err) {
 							return callback('The channel you have specified does not exist.');	
 						});
 
@@ -100,13 +102,13 @@ module.exports = web = function(config, db, services, modules) {
 						});
 
 						service.on('authenticated', function() {
-							service.sendMessage('BlipBot is now online. You can now manage me from the web interface.');
+							log.info('Successfully verified ' + data.beam + '.');
 							clearTimeout(timeout);
-							callback();
+							callback(null, service);
 						});
 					},
 					
-					function(callback) {
+					function(service, callback) {
 						bcrypt.hash(data.password, 8, function(err, hash) {
 							if (err) {
 								return callback(err);
@@ -115,13 +117,35 @@ module.exports = web = function(config, db, services, modules) {
 								if (err) {
 									return callback(err);
 								}
-								callback(null, record[0]._id);
+								callback(null, service, record[0]._id);
 							});
 						});
 					},
 					
-					function(id, callback) {
-						app.get('db').collection('services').insert({ user: id, type: 'beam', channel: data.beam }, callback);
+					function(service, user, callback) {
+						app.get('db').collection('services').insert({ user: user, type: 'beam', channel: data.beam }, function(err, records) {
+							if (err) {
+								return callback(err);
+							}
+							service.sendMessage('BlipBot is now online. You can now manage me from the web interface.');
+							service.id = records[0]._id;
+							services[service.id] = service;
+							callback(null, service);
+						});
+					},
+					
+					function(service, callback) {
+						async.each(Object.keys(modules), function(i, callback) {
+							app.get('db').collection('modules').insert({ service: service.id, module: modules[i].id, enabled: true }, function(err) {
+								if (err) {
+									return log.warn(err);
+								}
+								
+								log.debug('Enabling module ' + i + ' for new signup.');
+								modules[i].enable(service, {});
+								callback();
+							});
+						}, callback);
 					}
 				], function(err) {
 					pending.splice(pending.indexOf(data.beam.toLowerCase()), 1);
@@ -143,7 +167,7 @@ module.exports = web = function(config, db, services, modules) {
 						cb();
 						
 						if (c.service._id in services) {
-							services[c.service._id].messages.slice(-20).forEach(function(msg) {
+							services[c.service._id].messages.slice(0, 20).reverse().forEach(function(msg) {
 								c.emit('chat', msg);
 							});
 						}
@@ -154,7 +178,7 @@ module.exports = web = function(config, db, services, modules) {
 		
 		c.on('modulestate', function(data, cb) {
 			if ('id' in data && 'state' in data && data.id in modules) {
-				console.log(c.service);
+				log.info('Toggling module ' + m.id + ' for ' + c.service.channel + '...');
 				var id = c.service._id;
 				var m = modules[data.id];
 				var params = { service: id, module: m.id };
@@ -196,7 +220,7 @@ module.exports = web = function(config, db, services, modules) {
 						}
 						
 						m.config(services[c.service._id], function(config) {
-							cb(config, rows[0].config || {});
+							cb(config, rows.length == 0 ? {} : rows[0].config);
 						});
 					});
 				}else{
@@ -242,10 +266,6 @@ module.exports = web = function(config, db, services, modules) {
 				c.emit('chat', data);
 			}
 		}
-	});
-	
-	app.get('/status', function(req, res) {
-		res.json({ status: true });
 	});
 	
 	require('./auth')(app);
