@@ -39,6 +39,10 @@ util.inherits(beam, events);
 
 beam.prototype.getAuth = function(username, password, cb) {
 	this.query('post', 'users/login', { username: username, password: password }, function(err, res, body) {
+		if (err || res.statusCode != 200) {
+			return cb(new Error('internal error'));	
+		}
+		
 		log.info('Authenticated with Beam.');
 		cb(JSON.parse(body).id);
 	});
@@ -48,6 +52,10 @@ beam.prototype.getChannel = function(username, cb) {
 	this.query('get', 'channels/' + username, null, function(err, res, body) {
 		if (res.statusCode == 404) {
 			return cb(new Error('channel does not exist'));	
+		}
+		
+		if (err || res.statusCode != 200) {
+			return cb(new Error('internal error'));	
 		}
 		
 		log.info('Retrieved channel.');
@@ -62,9 +70,21 @@ beam.prototype.connect = function(user, endpoint) {
 	
 	var self = this;
 	this.query('get', 'chats/' + self.cid, null, function(err, res, body) {
+		if (err || res.statusCode != 200) {
+			log.warn('Invalid status code returned by Beam. Retrying in 3 seconds...');
+			setTimeout(function() {
+				self.connect(user);
+			}, 3000);
+			return;
+		}
+		
 		var data = JSON.parse(body);
 		
-		var endpoints = JSON.parse(body).endpoints;
+		if (!('endpoints' in data) && data.endpoints.length == 0) {
+			return log.warn('No endpoints available.');
+		}
+		
+		var endpoints = data.endpoints;
 		if (endpoint >= endpoints.length) {
 			endpoint = 0;
 		}
