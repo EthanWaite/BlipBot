@@ -136,14 +136,15 @@
 		});
 	});
 	
-	$('.modal .config').on('keyup', 'input', function() {
+	$('.modal .config').on('keyup change', 'input', function() {
 		var $status = $(this).closest('.config').find('h3').find('span');
 		$status.text('Saving changes...');
 		
 		var data = { id: $(this).closest('.modal > div').attr('data-module'), config: {} };
-		$(this).closest('form').serializeArray().forEach(function(input) {
-			data.config[input.name] = input.value;
+		$(this).closest('form').find('input').each(function() {
+			data.config[$(this).attr('name')] = $(this).attr('type') == 'checkbox' ? $(this).prop('checked') : $(this).val();
 		});
+		console.log(data);
 		
 		socket.emit('setconfig', data, function(err) {
 			$status.text(err || 'Changes saved.');
@@ -195,7 +196,14 @@
 					config.config.forEach(function(field) {
 						$field = $('<div></div>');
 						$('<label></label>').text(field.label).appendTo($field);
-						$('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', values && field.id in values ? values[field.id] : field.default).appendTo($field);
+						
+						var value = values && field.id in values ? values[field.id] : field.default;
+						$input = $('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', value).appendTo($field);
+						if (field.type == 'checkbox') {
+							console.log(value);
+							$input.prop('checked', value);
+						}
+						
 						$field.appendTo($config);
 					});
 				}

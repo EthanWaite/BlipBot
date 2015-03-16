@@ -15,7 +15,7 @@ module.exports = {
 
 function enable(service, config) {
 	if ('interval' in config && !isNaN(config.interval) && config.interval > 0) {
-		service.scheduleInterval = config.interval;
+		service.scheduleInterval = config.interval; //TODO Clean up configuration storage!
 	}else{
 		service.scheduleInterval = 2;
 	}
