@@ -111,6 +111,10 @@ function scheduleInterval(data) {
 }
 
 function setTimer(service) {
+	if (!('scheduleMessages' in service) || !('scheduleInterval' in service)) {
+		return;	
+	}
+	
 	log.info('Starting scheduler for ' + service.scheduleInterval + ' minutes...');
 	clearTimeout(service.scheduleTimer);
 	service.scheduleTimer = setInterval(function() {
