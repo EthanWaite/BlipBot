@@ -14,6 +14,7 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.channel = channel;
 	this.reconnect = true;
 	this.messages = [];
+	this.uses = {};
 	this.warnings = {};
 	this.maxwarnings = 5;
 	
@@ -254,7 +255,8 @@ beam.prototype.handleMessage = function(data) {
 	if (data.ex[0].substring(0, 1) == '!') {
 		var self = this;
 		var command = data.ex[0].substring(1).toLowerCase();
-		if (self.listeners('command:' + command).length > 0) {
+		if (self.listeners('command:' + command).length > 0 && (!(data.user.id in this.uses) || (new Date().getTime() - this.uses[data.user.id]) > 1000)) {
+			this.uses[data.user.id] = new Date().getTime();
 			data.ex.shift();
 			this.deleteMessage(data.id, function() {
 				self.emit('command:' + command, data);
