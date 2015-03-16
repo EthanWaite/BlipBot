@@ -102,24 +102,30 @@ beam.prototype.connect = function(user, endpoint) {
 			if (data.type == 'event') {
 				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
 					self.emit('authenticated');
-				}else if (data.event == 'ChatMessage' && data.data.user_name != self.config.username) {
-					var text = self.parseMessage(data.data.message);
-					var message = {
-						service: 'beam',
-						time: new Date().getTime(),
-						msg: text,
-						ex: text.split(' '),
-						raw: data.data.message,
-						id: data.data.id,
-						user: {
-							id: data.data.user_id,
-							name: data.data.user_name,
-							role: data.data.user_role
+				}else if (data.event == 'ChatMessage') {
+					if (data.data.user_name == self.config.username) {
+						if (data.data.user_role == 'Owner') {
+							self.emit('authenticated');	
 						}
-					};
+					}else{
+						var text = self.parseMessage(data.data.message);
+						var message = {
+							service: 'beam',
+							time: new Date().getTime(),
+							msg: text,
+							ex: text.split(' '),
+							raw: data.data.message,
+							id: data.data.id,
+							user: {
+								id: data.data.user_id,
+								name: data.data.user_name,
+								role: data.data.user_role
+							}
+						};
 
-					self.handleMessage(message);
-					self.messages.unshift(message);
+						self.handleMessage(message);
+						self.messages.unshift(message);
+					}
 				}
 			}
 		});
@@ -196,7 +202,7 @@ beam.prototype.sendMessage = function(msg, recipient) {
 		msg = (recipient.substring(0, 1) != '@' ? '@' : '') + recipient + ' ' + msg;	
 	}
 	
-	log.info('Sending message to ' + msg + ' in ' + this.channel + ': ' + msg);
+	log.info('Sending message to ' + this.channel + ': ' + msg);
 	this.socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 

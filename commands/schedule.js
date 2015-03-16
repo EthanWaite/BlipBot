@@ -14,9 +14,13 @@ module.exports = {
 };
 
 function enable(service, config) {
-	service.scheduleInterval = config.interval || 2;
-	service.scheduleMessages = [];
+	if ('interval' in config && !isNaN(config.interval) && config.interval > 0) {
+		service.scheduleInterval = config.interval;
+	}else{
+		service.scheduleInterval = 2;
+	}
 	
+	service.scheduleMessages = [];
 	service.db.collection('schedule').find({ service: service.id }).toArray(function(err, rows) {
 		service.scheduleMessages = rows;
 		setTimer(service);

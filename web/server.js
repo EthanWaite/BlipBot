@@ -97,11 +97,11 @@ module.exports = web = function(config, db, services, modules) {
 							service.disconnect();
 						}, 60000);
 
-						service.on('connected', function() {
+						service.once('connected', function() {
 							service.sendMessage('I am a Beam chat bot, and I have been asked to join here from the web interface. Please type /mod BlipBot if you authorized this request.');
 						});
 
-						service.on('authenticated', function() {
+						service.once('authenticated', function() {
 							log.info('Successfully verified ' + data.beam + '.');
 							clearTimeout(timeout);
 							callback(null, service);

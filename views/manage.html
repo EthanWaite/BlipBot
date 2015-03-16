@@ -195,7 +195,7 @@
 					config.config.forEach(function(field) {
 						$field = $('<div></div>');
 						$('<label></label>').text(field.label).appendTo($field);
-						$('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', values[field.id] || 2).appendTo($field);
+						$('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', values && field.id in values ? values[field.id] : field.default).appendTo($field);
 						$field.appendTo($config);
 					});
 				}

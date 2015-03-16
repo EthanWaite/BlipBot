@@ -21,8 +21,8 @@ module.exports = function(app) {
 				return res.render('login', { title: 'Admin Login', error: 'Invalid login credentials.' });
 			}
 			
-			bcrypt.compare(req.body.password, rows[0].password, function(err) {
-				if (err || !res) {
+			bcrypt.compare(req.body.password, rows[0].password, function(err, match) {
+				if (err || !match) {
 					return res.render('login', { title: 'Admin Login', error: 'Invalid login credentials.' });
 				}
 				req.session.userid = rows[0]._id;
