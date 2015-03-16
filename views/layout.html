@@ -17,7 +17,11 @@
 			<header>
 				<div class="header">
 					<div class="container">
-						<div class="nav"></div>						
+						<div class="nav">
+							{{#if service}}
+								<a href="/logout">Logout</a>
+							{{/if}}
+						</div>						
 						<h1>BlipBot</h1>
 					</div>
 				</div>
