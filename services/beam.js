@@ -177,7 +177,7 @@ beam.prototype.addWarning = function(user, reason, cb) {
 	log.info('Adding warning for user ' + user.name + '...');
 	var self = this;
 	this.db.collection('warnings').insert({ service: this.id, user: user.id, name: user.name, reason: reason, expired: false }, function(err) {
-		log.debug('Callback');
+		log.debug('Callback!');
 		if (err) {
 			throw err;
 		}

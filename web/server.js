@@ -182,7 +182,7 @@ module.exports = web = function(config, db, services, modules) {
 				var m = modules[data.id];
 				var params = { service: id, module: m.id };
 				log.info('Toggling module ' + m.id + '...');
-				app.get('db').collection('modules').update(params, { service: id, module: m.id, enabled: data.state === true }, { upsert: true }, function(err) {
+				app.get('db').collection('modules').update(params, { $set: { service: id, module: m.id, enabled: data.state === true } }, { upsert: true }, function(err) {
 					if (err) {
 						return log.warn(err);
 					}
@@ -232,7 +232,7 @@ module.exports = web = function(config, db, services, modules) {
 		c.on('setconfig', function(data, cb) {
 			if ('id' in data && 'config' in data && data.id in modules && c.service._id in services) {
 				var m = modules[data.id];
-				app.get('db').collection('modules').update({ service: c.service._id, module: m.id }, { service: c.service._id, module: m.id, config: data.config }, function(err) {
+				app.get('db').collection('modules').update({ service: c.service._id, module: m.id }, { $set: { config: data.config } }, function(err) {
 					if (err) {
 						return log.warn(err);
 					}

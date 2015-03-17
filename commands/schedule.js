@@ -44,6 +44,7 @@ function config(service, cb) {
 		});
 		
 		cb({
+			title: 'Scheduled messages',
 			items: items,
 			fields: [
 				{

@@ -171,6 +171,10 @@
 				$list = $modal.find('.messages > div').html('');
 				$config = $modal.find('.config > form').html('');
 				$title.find('.fa').remove();
+				
+				if ('title' in config) {
+					$title.text(config.title);
+				}
 
 				if ('items' in config) {
 					if (config.items.length == 0) {

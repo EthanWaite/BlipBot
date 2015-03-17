@@ -30,6 +30,7 @@ function config(service, cb) {
 		});
 		
 		cb({
+			title: 'Custom messages',
 			items: items,
 			fields: [
 				{

@@ -1,4 +1,4 @@
-var blacklist = [ 'cake', 'cookie' ];
+var mongodb = require('mongodb');
 
 module.exports = {
 	id: 'filter',
@@ -7,12 +7,15 @@ module.exports = {
 	commands: [],
 	enable: enable,
 	disable: disable,
-	config: config
+	config: config,
+	add: add,
+	remove: remove
 };
 
 function enable(service, config) {
 	service.filter = config;
 	service.on('data', dataHandler);
+	setWords(service);
 }
 
 function disable(service) {
@@ -23,10 +26,11 @@ function config(service, cb) {
 	service.db.collection('badwords').find({ service: service.id }).toArray(function(err, rows) {
 		var items = [];
 		rows.forEach(function(row) {
-			items.push({ id: row._id, word: row.word });
+			items.push({ id: row._id, content: row.word });
 		});
 		
 		cb({
+			title: 'Blocked words',
 			items: items,
 			fields: [
 				{
@@ -55,9 +59,29 @@ function config(service, cb) {
 	});
 }
 
+function add(service, db, data, cb) {
+	db.collection('badwords').insert({ service: service.id, word: data.word }, function(err) {
+		if (err) {
+			return log.warn(err);
+		}
+		setWords(service);
+		cb();
+	});
+}
+
+function remove(service, db, data, cb) {
+	db.collection('badwords').remove({ service: service.id, _id: new mongodb.ObjectID(data.message) }, function(err) {
+		if (err) {
+			return log.warn(err);
+		}
+		setWords(service);
+		cb();
+	});
+}
+
 function dataHandler(data) {
 	if (this.hasRole([ 'mod', 'owner' ], data.user.role)) {
-		return;
+		//return;
 	}
 	
 	var self = this;
@@ -77,8 +101,8 @@ function dataHandler(data) {
 	}
 
 	if ('badwords' in this.filter && this.filter.badwords) {
-		for (var i in blacklist) {
-			if (data.msg.toLowerCase().indexOf(blacklist[i]) != -1) {
+		for (var i in this.blockedWords) {
+			if (data.msg.toLowerCase().indexOf(this.blockedWords[i].toLowerCase()) != -1) {
 				this.deleteMessage(data.id, function() {
 					self.addWarning(data.user, 'bad language', function(warnings, max) {
 						self.sendMessage('Watch your language. (warning ' + warnings + '/' + max + ')', data.user.name);
@@ -104,4 +128,13 @@ function dataHandler(data) {
 			});
 		}
 	}
+}
+
+function setWords(service) {
+	service.db.collection('badwords').find({ service: service.id }).toArray(function(err, rows) {
+		service.blockedWords = [];
+		rows.forEach(function(row) {
+			service.blockedWords.push(row.word);
+		});
+	});
 }

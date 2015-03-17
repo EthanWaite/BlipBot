@@ -357,6 +357,10 @@ pre {
 	margin-bottom:9px;
 }
 
+.modal .btn:hover, .modal .fa:hover {
+	text-decoration:none;
+}
+
 .modal .config form > div {
 	margin:6px 0px;
 }
