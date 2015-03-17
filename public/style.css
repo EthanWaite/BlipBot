@@ -231,10 +231,25 @@ pre {
 	margin:3px 0px 0px 0px;
 }
 
-.content > ul li .fa.right, .modal li .fa {
-	width:auto;
-	float:right;
-	margin-left:12px;
+.content > ul li .edit {
+	display:inline-block;
+	background-color:#fafafa;
+	border:solid 1px #ccc;
+	border-radius:3px;
+	font-size:12px;
+	font-weight:bold;
+	padding:4px;
+	opacity:0.8;
+	cursor:default;
+	margin-top:-4px;
+}
+
+.content > ul li .edit:hover {
+	opacity:1;
+}
+
+.content > ul li .edit .fa {
+	width:16px;
 }
 
 .content > ul li .fa:hover, .modal li .fa:hover {
@@ -325,6 +340,11 @@ pre {
 .modal h3 span {
 	font-size:12px;
 	color:#ccc;
+	float:right;
+}
+
+.modal li .fa {
+	width:auto;
 	float:right;
 }
 
