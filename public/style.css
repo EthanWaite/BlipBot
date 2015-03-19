@@ -4,7 +4,7 @@ body {
 	margin:0px auto;
 }
 
-body, input {
+body, input, textarea {
 	font-family:Open Sans, Helvetica Neue, Arial, sans-serif;
 }
 
@@ -30,6 +30,12 @@ input[type="submit"], .btn {
 
 input[type="submit"]:hover, .btn:hover {
 	opacity:0.9;
+}
+
+input[type="submit"][disabled] {
+	background-color:#aaa;
+	border-color:#999;
+	color:#333;
 }
 
 pre {
@@ -278,6 +284,13 @@ pre {
 	min-width:100px;
 }
 
+.delete {
+	font-size:9px;
+	color:#ccc;
+	float:right;
+	margin:-24px 0px 0px 0px;
+}
+
 .modal {
 	display:none;
 	position:fixed;
@@ -286,6 +299,7 @@ pre {
 	bottom:0px;
 	left:0px;
 	background-color:rgba(0, 0, 0, 0.8);
+	overflow-y:auto;
 }
 
 .modal a {
@@ -371,10 +385,16 @@ pre {
 	display:none;
 }
 
-.modal input[type="text"], .modal input[type="password"], .modal input[type="email"] {
+.modal input[type="text"], .modal input[type="password"], .modal input[type="email"], textarea {
 	width:100%;
 	box-sizing:border-box;
 	margin-bottom:9px;
+}
+
+.modal textarea {
+	height:120px;
+	border-color:#ccc;
+	padding:12px;
 }
 
 .modal .btn:hover, .modal .fa:hover {

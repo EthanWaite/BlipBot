@@ -30,6 +30,8 @@
 					{{/each}}
 				</ul>
 			</div>
+			
+			<a href="#" class="delete" data-modal="delete">Delete Account</a>
 		</div>
 	</div>
 </div>
@@ -66,6 +68,16 @@
 			</form>
 		</div>
 	{{/each}}
+	
+	<div data-modal="delete">
+		<h2>Delete Account</h2>
+		<p>Your BlipBot account, the services attached, and all module configurations will be lost. BlipBot will be removed from your channel.</p>
+		<p>Please take a moment just to tell us why you are deleting your account, and how we can improve our service for the future. We would love to hear any suggestions you may have for the future of BlipBot.</p>
+		<form method="post" action="/delete">
+			<textarea name="reason" placeholder="Why are you deleting your account, and how can we improve?"></textarea>
+			<input type="submit" value="Delete Account" disabled />
+		</form>
+	</div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -96,7 +108,7 @@
 	$('.modules li[data-module] .edit').click(function() {
 		var $modal = $('.modal > div[data-module="' + $(this).parent().attr('data-module') + '"]');
 		refreshModule($modal, function() {
-			$modal.show().parent().fadeIn(300);
+			openModal($modal);
 		});
 	});
 	
@@ -151,6 +163,11 @@
 		});
 	});
 	
+	$('a[data-modal]').click(function(e) {
+		e.preventDefault();
+		openModal($('.modal > div[data-modal="' + $(this).attr('data-modal') + '"]'));
+	});
+	
 	$('.modal').click(function(e) {
 		$(this).fadeOut(300, function() {
 			$('.modal > div').hide();
@@ -160,6 +177,27 @@
 	$('.modal > div').click(function(e) {
 		e.stopPropagation();
 	});
+	
+	$('.modal [data-modal="delete"] textarea').keyup(function() {
+		console.log($(this).val().length);
+		$(this).parent().find('input[type="submit"]').prop('disabled', $(this).val().length == 0);
+	});
+	
+	$('.modal [data-modal="delete"] form').submit(function(e) {
+		$(this).find('input[type="submit"]').val('I\'ll miss you! :\'(');
+	});
+	
+	function openModal($modal) {
+		$('body').css({ 'overflow-y': 'hidden' });
+		$modal.show().parent().fadeIn(300)
+	}
+	
+	function closeModal() {
+		$('body').css({ 'overflow-y': 'auto' });
+		$('.modal').fadeOut(300, function() {
+			$('.modal > div').hide();
+		});
+	}
 	
 	function refreshModule($modal, cb) {
 		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config, values) {

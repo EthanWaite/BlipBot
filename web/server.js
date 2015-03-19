@@ -268,7 +268,7 @@ module.exports = web = function(config, db, services, modules) {
 		}
 	});
 	
-	require('./auth')(app);
+	require('./auth')(app, services);
 	require('./manage')(app);
 };
 

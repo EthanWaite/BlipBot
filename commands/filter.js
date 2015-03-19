@@ -81,7 +81,7 @@ function remove(service, db, data, cb) {
 
 function dataHandler(data) {
 	if (this.hasRole([ 'mod', 'owner' ], data.user.role)) {
-		//return;
+		return;
 	}
 	
 	var self = this;

@@ -1,7 +1,8 @@
 var mongodb = require('mongodb');
+var async = require('async');
 var bcrypt = require('bcrypt');
 
-module.exports = function(app) {
+module.exports = function(app, services) {
 	app.get('/login', function(req, res) {
 		res.render('login', { title: 'Admin Login' });
 	});
@@ -26,7 +27,7 @@ module.exports = function(app) {
 					return res.render('login', { title: 'Admin Login', error: 'Invalid login credentials.' });
 				}
 				req.session.userid = rows[0]._id;
-				req.session.services = rows[0].services;
+				req.session.username = rows[0].username;
 				res.redirect('./');
 			});
 		});
@@ -37,6 +38,41 @@ module.exports = function(app) {
 			return res.redirect('/login');
 		}
 		next();
+	});
+	
+	app.post('/delete', function(req, res) {
+		console.log('Deleting!');
+		async.series([
+			function(callback) {
+				app.get('db').collection('services').find({ user: new mongodb.ObjectID(req.session.userid) }).toArray(function(err, rows) {
+					if (err) {
+						return callback(err);
+					}
+					
+					rows.forEach(function(row) {
+						if (row._id in services) {
+							services[row._id].disconnect();
+						}
+					});
+					
+					callback();
+				});
+			},
+			function(callback) {
+				app.get('db').collection('services').remove({ user: new mongodb.ObjectID(req.session.userid) }, callback);
+			},
+			function(callback) {
+				app.get('db').collection('users').remove({ _id: new mongodb.ObjectID(req.session.userid) }, callback);
+			},
+			function(callback) {
+				app.get('db').collection('deletes').insert({ name: req.session.username, reason: req.body.reason }, callback);
+			}
+		], function(err) {
+			if (err) {
+				return log.warn(err);
+			}
+			res.redirect('http://blipbot.dead-i.co.uk/');
+		});
 	});
 	
 	app.all('/:service', function(req, res, next) {
