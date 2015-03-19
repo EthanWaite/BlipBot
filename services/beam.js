@@ -293,9 +293,7 @@ beam.prototype.banUser = function(user, cb) {
 
 beam.prototype.parseMessage = function(parts) {
 	var result = '';
-	if (parts instanceof array) {
-		result = parts;
-	}else{
+	if (parts instanceof Array) {
 		parts.forEach(function(part) {
 			if (part.type == 'text') {
 				result = result + part.data;	
@@ -303,6 +301,8 @@ beam.prototype.parseMessage = function(parts) {
 				result = result + part.text;
 			}
 		});
+	}else{
+		result = parts;
 	}
 	return ent.decode(result);
 };

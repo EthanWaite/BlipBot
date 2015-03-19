@@ -33,7 +33,7 @@ function dataHandler(data) {
 					self.sendMessage('(' + (channel.online ? 'Online' : 'Offline') + ') ' + channel.name, data.user.name);
 				});
 			}else{
-				request(part.url, function(err, res, body) {
+				request(part.url, { headers: { 'Accept-Language': 'en-us' } }, function(err, res, body) {
 					if (err) {
 						return;
 					}
