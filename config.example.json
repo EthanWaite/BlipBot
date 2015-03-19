@@ -1,4 +1,8 @@
 {
+  "general": {
+    "port": 8080,
+    "secret": "secret"
+  },
   "services": {
     "beam": {
       "username": "BlipBot",
@@ -8,6 +12,8 @@
   "db": {
     "host": "127.0.0.1",
     "port": "27017",
-    "name": "blipbotdb"
+    "name": "blipbot",
+    "username": "blipbot",
+    "password": "password"
   }
 }
