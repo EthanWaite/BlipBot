@@ -14,6 +14,7 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.channel = channel;
 	this.reconnect = true;
 	this.messages = [];
+	this.followers = [];
 	this.uses = {};
 	this.warnings = {};
 	this.maxwarnings = 5;
@@ -31,7 +32,8 @@ module.exports = beam = function(config, db, id, channel, cb) {
 			}
 			
 			self.cid = channel.id;
-			self.connect(id);
+			self.connectLive();
+			self.connectChat(id);
 		});
 	});
 };
@@ -64,7 +66,58 @@ beam.prototype.getChannel = function(username, cb) {
 	});
 };
 
-beam.prototype.connect = function(user, endpoint) {
+beam.prototype.connectLive = function() {
+	var self = this;
+	this.query('get', '/socket.io/1', null, function(err, res, body) {
+		if (err || res.statusCode != 200) {
+			return log.warn('Unable to retrieve socket data.');
+		}
+		
+		self.call = 0;
+		log.info('Connecting to live web socket...');
+		var socket = new websocket('https://beam.pro/socket.io/1/websocket/' + body.split(':')[0], { headers: { 'User-Agent': agent } });
+		
+		socket.on('message', function(data) {
+			log.debug('Live: ' + data);
+			
+			var slug = 'channel:' + self.cid + ':followed';
+			switch (data.split('::')[0]) {
+				case '1':
+					socket.send('5:' + self.call++ + '+::' + JSON.stringify({ name: 'put', args: [{ method: 'put', data: { slug: slug }, url: '/api/v1/live', headers: {} }]}));
+					break;
+				
+				case '2':
+					socket.send('2::');
+					break;
+				
+				case '5':
+					var event = JSON.parse(data.substring(4));
+					var arg = event.args[0];
+					if (event.name == slug && arg.following && self.followers.indexOf(arg.user.id) == -1) {
+						log.info('New follower in channel ' + self.channel + ': ' + arg.user.username);
+						self.followers.push(arg.user.id);
+						self.emit('follow', arg.user);
+					}
+					break;
+			}
+		});
+		
+		socket.on('error', function(err) {
+			log.warn(err);
+		});
+		
+		socket.on('close', function() {
+			if (self.reconnect) {
+				log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
+				setTimeout(self.connectLive.call(self), 3000);
+			}
+		});
+		
+		self.live = socket;
+	});
+};
+
+beam.prototype.connectChat = function(user, endpoint) {
 	if (endpoint === undefined) {
 		endpoint = 0;	
 	}
@@ -74,7 +127,7 @@ beam.prototype.connect = function(user, endpoint) {
 		if (err || res.statusCode != 200) {
 			log.warn('Invalid status code returned by Beam. Retrying in 3 seconds...');
 			setTimeout(function() {
-				self.connect(user);
+				self.connectChat(user);
 			}, 3000);
 			return;
 		}
@@ -91,7 +144,7 @@ beam.prototype.connect = function(user, endpoint) {
 		}
 		var server = endpoints[endpoint];
 		
-		log.info('Connecting to web socket at ' + server + ' (endpoint ' + endpoint + ')...');
+		log.info('Connecting to chat web socket at ' + server + ' (endpoint ' + endpoint + ')...');
 		var socket = new websocket(server, { headers: { 'User-Agent': agent } });
 		
 		socket.on('open', function() {
@@ -105,15 +158,15 @@ beam.prototype.connect = function(user, endpoint) {
 		
 		socket.on('close', function() {
 			if (self.reconnect) {
-				log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
+				log.warn('Lost connection to chat server. Re-attempting connection in 3 seconds...');
 				setTimeout(function() {
-					self.connect(user, endpoint + 1);
+					self.connectChat(user, endpoint + 1);
 				}, 3000);
 			}
 		});
 		
 		socket.on('message', function(data) {
-			log.debug('Raw: ' + data);
+			//log.debug('Raw: ' + data);
 			data = JSON.parse(data);
 			
 			if (data.type == 'reply' && data.error == null && 'authenticated' in data.data && data.data.authenticated) {
@@ -205,7 +258,7 @@ beam.prototype.resetWarnings = function(user) {
 beam.prototype.query = function(method, target, form, cb) {
 	request({
 		method: method,
-		url: 'https://beam.pro/api/v1/' + target,
+		url: 'https://beam.pro' + (target.substring(0, 1) == '/' ? '' : '/api/v1/') + target,
 		form: form,
 		jar: true,
 		headers: {
@@ -240,13 +293,17 @@ beam.prototype.banUser = function(user, cb) {
 
 beam.prototype.parseMessage = function(parts) {
 	var result = '';
-	parts.forEach(function(part) {
-		if (part.type == 'text') {
-			result = result + part.data;	
-		}else{
-			result = result + part.text;
-		}
-	});
+	if (parts instanceof array) {
+		result = parts;
+	}else{
+		parts.forEach(function(part) {
+			if (part.type == 'text') {
+				result = result + part.data;	
+			}else{
+				result = result + part.text;
+			}
+		});
+	}
 	return ent.decode(result);
 };
 

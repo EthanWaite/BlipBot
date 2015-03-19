@@ -265,7 +265,7 @@ pre {
 }
 
 .content .logs {
-	height:395px;
+	height:439px;
 	overflow-y:auto;
 }
 
@@ -391,8 +391,12 @@ pre {
 }
 
 .modal .config form input {
-	width:33%;
+	width:66%;
 	float:right;
+}
+
+.modal .config form input[type="number"] {
+	width:33%;
 }
 
 .modal .config form input[type="checkbox"] {

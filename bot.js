@@ -14,7 +14,7 @@ connectMongo(function(db) {
 	db.collection('services').find({}).toArray(function(err, rows) {
 		rows.forEach(function(row) {
 			services[row._id] = util.registerService(config, db, web, row);
-        });
+		});
 		log.info('Services registered.');
 	});
 });

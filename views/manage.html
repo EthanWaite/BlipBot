@@ -163,13 +163,11 @@
 	
 	function refreshModule($modal, cb) {
 		socket.emit('getconfig', { id: $modal.attr('data-module') }, function(config, values) {
-			console.log('callback');
 			if (config === undefined || config.length == 0) {
 				$modal.find('.messages, .config').hide();
 			}else{
-				$title = $modal.find('.messages > h3');
-				$list = $modal.find('.messages > div').html('');
-				$config = $modal.find('.config > form').html('');
+				var $title = $modal.find('.messages > h3').hide();
+				var $list = $modal.find('.messages > div').html('');
 				$title.find('.fa').remove();
 				
 				if ('title' in config) {
@@ -177,6 +175,7 @@
 				}
 
 				if ('items' in config) {
+					$title.show();
 					if (config.items.length == 0) {
 						$list.html('<p>There are no items configured here yet. Go ahead and add one!</p>');
 					}else{
@@ -196,10 +195,13 @@
 					});
 				}
 				
+				var $title = $modal.find('.config > h3');
+				var $config = $modal.find('.config > form').html('');
 				if ('config' in config) {
+					$title.show();
 					config.config.forEach(function(field) {
 						$field = $('<div></div>');
-						$('<label></label>').text(field.label).appendTo($field);
+						$('<label></label>').text(field.label + ':').appendTo($field);
 						
 						var value = values && field.id in values ? values[field.id] : field.default;
 						$input = $('<input />').attr('type', field.type || 'text').attr('name', field.id).attr('value', value).appendTo($field);

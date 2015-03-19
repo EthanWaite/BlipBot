@@ -15,11 +15,11 @@ module.exports = {
 
 function enable(service) {
 	setupCommands(service);
-	service.on('command:addalias', add);
+	service.on('command:addalias', addAlias);
 }
 
 function disable(service) {
-	service.removeListener('command:addalias', add);
+	service.removeListener('command:addalias', addAlias);
 }
 
 function config(service, cb) {
@@ -73,7 +73,7 @@ function remove(service, db, data, cb) {
 	});
 }
 
-function add(data) {
+function addAlias(data) {
 	if (!this.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
 		return;
 	}
