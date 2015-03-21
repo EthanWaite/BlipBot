@@ -68,53 +68,47 @@ beam.prototype.getChannel = function(username, cb) {
 
 beam.prototype.connectLive = function() {
 	var self = this;
-	this.query('get', '/socket.io/1', null, function(err, res, body) {
-		if (err || res.statusCode != 200) {
-			return log.warn('Unable to retrieve socket data.');
+	self.call = 420;
+	
+	log.info('Connecting to live web socket...');
+	var socket = new websocket('https://beam.pro/socket.io/?__sails_io_sdk_version=0.11.0&__sails_io_sdk_platform=node&__sails_io_sdk_language=javascript&EIO=3&transport=websocket', { headers: { 'User-Agent': agent } });
+	
+	var timeout = setInterval(function() {
+		if (socket.readyState == 1) {
+			socket.send('2');	
 		}
-		
-		self.call = 0;
-		log.info('Connecting to live web socket...');
-		var socket = new websocket('https://beam.pro/socket.io/1/websocket/' + body.split(':')[0], { headers: { 'User-Agent': agent } });
-		
-		socket.on('message', function(data) {
-			log.debug('Live: ' + data);
-			
-			var slug = 'channel:' + self.cid + ':followed';
-			switch (data.split('::')[0]) {
-				case '1':
-					socket.send('5:' + self.call++ + '+::' + JSON.stringify({ name: 'put', args: [{ method: 'put', data: { slug: slug }, url: '/api/v1/live', headers: {} }]}));
-					break;
-				
-				case '2':
-					socket.send('2::');
-					break;
-				
-				case '5':
-					var event = JSON.parse(data.substring(4));
-					var arg = event.args[0];
-					if (event.name == slug && arg.following && self.followers.indexOf(arg.user.id) == -1) {
-						log.info('New follower in channel ' + self.channel + ': ' + arg.user.username);
-						self.followers.push(arg.user.id);
-						self.emit('follow', arg.user);
-					}
-					break;
+	}, 25000);
+	
+	socket.on('message', function(data) {
+		var slug = 'channel:' + self.cid + ':followed';
+		if (data == '40') {
+			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug ] }, url: '/api/v1/live' }]));
+		}else{
+			var index = data.substring(0, 3).indexOf('[');
+			if (index != -1) {
+				var event = JSON.parse(data.substring(index));
+				if (event[0] == slug && event[1].following && self.followers.indexOf(event[1].user.id) == -1) {
+					log.info('New follower in channel ' + self.channel + ': ' + event[1].user.username);
+					self.followers.push(event[1].user.id);
+					self.emit('follow', event[1].user);
+				}
 			}
-		});
-		
-		socket.on('error', function(err) {
-			log.warn(err);
-		});
-		
-		socket.on('close', function() {
-			if (self.reconnect) {
-				log.warn('Lost connection to Beam. Re-attempting connection in 3 seconds...');
-				setTimeout(self.connectLive.call(self), 3000);
-			}
-		});
-		
-		self.live = socket;
+		}
 	});
+	
+	socket.on('error', function(err) {
+		log.warn(err);
+	});
+
+	socket.on('close', function() {
+		if (self.reconnect) {
+			log.warn('Lost connection to Beam. Attempting reconnection in 3 seconds...');
+			setTimeout(self.connectLive.call(self), 3000);
+			clearTimeout(timeout);
+		}
+	});
+	
+	self.live = socket;
 };
 
 beam.prototype.connectChat = function(user, endpoint) {
@@ -196,7 +190,8 @@ beam.prototype.connectChat = function(user, endpoint) {
 								role: data.data.user_role
 							}
 						};
-
+						
+						log.info('Message in ' + self.channel + ' from ' + message.user.name + ': ' + text);
 						self.handleMessage(message);
 						self.messages.unshift(message);
 					}
@@ -216,8 +211,26 @@ beam.prototype.disconnect = function() {
 	}
 };
 
+beam.prototype.getUser = function(username, cb) {
+	this.query('get', 'channels/' + username, null, function(err, res, body) {
+		if (err) {
+			return cb(err);
+		}
+		
+		if (res.statusCode == 404) {
+			return cb();
+		}
+		
+		if (res.statusCode != 200) {
+			return cb(new Error('unable to retrieve user ID from Beam'));
+		}
+		
+		cb(null, JSON.parse(body).user);
+	});
+};
+
 beam.prototype.getWarnings = function(user, cb) {
-	log.info('Retrieving warnigns for user ' + user.name + '...');
+	log.info('Retrieving warnings for user ' + user.name + '...');
 	this.db.collection('warnings').find({ service: this.id, user: user.id, expired: false }).count(function(err, count) {
 		if (err) {
 			throw err;

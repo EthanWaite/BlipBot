@@ -54,6 +54,10 @@ module.exports = web = function(config, db, services, modules) {
 					return cb('Please ensure you have entered valid information.');	
 				}
 				
+				if (!/^([A-Za-z0-9_\-\.]+)$/.test(data.username) || !/^([A-Za-z0-9_\-\.]+)$/.test(data.beam)) {
+					return cb('Your username can only contain numbers, letters, periods, dashes and underscores.');
+				}
+				
 				if (pending.indexOf(data.beam.toLowerCase()) != -1) {
 					return cb('Sorry, but there is already a pending signup request using this channel. Please try again shortly.');
 				}

@@ -1,6 +1,7 @@
 var mongodb = require('mongodb');
 var async = require('async');
 var bcrypt = require('bcrypt');
+var validator = require('validator');
 
 module.exports = function(app, services) {
 	app.get('/login', function(req, res) {
@@ -13,7 +14,11 @@ module.exports = function(app, services) {
 	});
 	
 	app.post('/login', function(req, res) {
-		app.get('db').collection('users').find({ username: req.body.username }).toArray(function(err, rows) {
+		if (!/^([A-Za-z0-9_\-\.]+)$/.test(req.body.username)) {
+			return res.render('login', { title: 'Admin Login', error: 'Invalid username.' });
+		}
+		
+		app.get('db').collection('users').find({ username: { $regex: '^' + req.body.username + '$', $options: 'i' } }).toArray(function(err, rows) {
 			if (err) {
 				throw err;
 			}
