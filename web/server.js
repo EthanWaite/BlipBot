@@ -155,6 +155,7 @@ module.exports = web = function(config, db, services, modules) {
 					pending.splice(pending.indexOf(data.beam.toLowerCase()), 1);
 					if (err) {
 						log.warn(err);
+						log.warn('Channel: ' + data.beam);
 						return cb(typeof err === 'string' ? err : 'Internal error.');
 					}
 					cb();

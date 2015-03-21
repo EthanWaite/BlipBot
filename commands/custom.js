@@ -47,11 +47,7 @@ function config(service, cb) {
 }
 
 function add(service, db, data, cb) {
-	if (data.name.indexOf('!') == 0) {
-		data.name = data.name.substring(1);	
-	}
-	
-	db.collection('commands').insert({ service: service.id, name: data.name, content: data.message }, function(err) {
+	db.collection('commands').insert({ service: service.id, name: parseCommand(data.name), content: data.message }, function(err) {
 		if (err) {
 			return log.warn(err);
 		}
@@ -86,18 +82,19 @@ function set(data) {
 	if (data.ex.length < 2) {
 		return this.sendMessage('This creates a new custom command.', data.user.name);
 	}
-
-	if (this.listeners(data.ex[0]).length > 0) {
+	
+	var command = parseCommand(data.ex[0]);
+	if (this.listeners(command).length > 0) {
 		return this.sendMessage('You cannot override a predefined command.', data.user.name);	
 	}
 	
 	var self = this;
-	this.db.collection('commands').insert({ service: this.id, name: data.ex[0], content: data.ex.slice(1).join(' ') }, function(err) {
+	this.db.collection('commands').insert({ service: this.id, name: command, content: data.ex.slice(1).join(' ') }, function(err) {
 		if (err) {
 			throw err;
 		}
 
-		self.sendMessage('Command !' + data.ex[0] + ' has been set.', data.user.name);
+		self.sendMessage('Command !' + command + ' has been set.', data.user.name);
 		setupCommands(self);
 	});
 }
@@ -116,4 +113,12 @@ function setupCommands(service) {
 			});
 		});
 	});
+}
+
+function parseCommand(command) {
+	command = command.toLowerCase();
+	if (command.indexOf('!') == 0) {
+		return command.substring(1);	
+	}
+	return command;
 }
