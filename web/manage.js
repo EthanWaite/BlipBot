@@ -7,6 +7,7 @@ module.exports = function(app) {
 	});
 	
 	app.get('/:type', function(req, res) {
+		var order = [ 'custom', 'clear', 'filter', 'follow', 'links', 'raffle', 'schedule', 'aliases', 'seen', 'ping' ];
 		var modules = app.get('modules');
 		async.each(Object.keys(app.get('modules')), function(m, cb) {
 			app.get('db').collection('modules').find({ service: req.service._id, module: modules[m].id }).toArray(function(err, rows) {
@@ -24,7 +25,12 @@ module.exports = function(app) {
 					users[row.user].push(row);
 				});
 				
-				res.render('manage', { title: 'Manage Channel', service: req.service, modules: modules, warnings: users });
+				var modulelist = [];
+				order.forEach(function(m) {
+					modulelist.push(modules[m]);
+				});
+				
+				res.render('manage', { title: 'Manage Channel', service: req.service, modules: modulelist, warnings: users });
 			});
 		});
 	});

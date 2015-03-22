@@ -3,6 +3,7 @@ var util = require('util');
 var request = require('request');
 var websocket = require('ws');
 var ent = require('ent');
+var mongodb = require('mongodb');
 var log = require('log4js').getLogger('BEAM');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
@@ -36,6 +37,8 @@ module.exports = beam = function(config, db, id, channel, cb) {
 			self.connectChat(id);
 		});
 	});
+	
+	setInterval(this.checkBans.bind(this), 60000);
 };
 
 util.inherits(beam, events);
@@ -253,7 +256,8 @@ beam.prototype.addWarning = function(user, reason, cb) {
 			log.debug('Got new warnings.');
 			if (warnings >= self.maxwarnings) {
 				log.debug('Banning user for hitting max warnings');
-				self.banUser(user);
+				self.banUser(user.name);
+				self.resetWarnings(user);
 			}
 			log.debug('Sending callback');
 			cb(warnings, self.maxwarnings);
@@ -264,7 +268,9 @@ beam.prototype.addWarning = function(user, reason, cb) {
 beam.prototype.resetWarnings = function(user) {
 	log.info('Resetting warnings for user ' + user.name + '...');
 	this.db.collection('warnings').update({ service: this.id, user: user.id }, { $set: { expired: true } }, { multi: true }, function(err) {
-		throw err;
+		if (err) {
+			throw err;
+		}
 	});
 };
 
@@ -298,10 +304,44 @@ beam.prototype.deleteMessage = function(id, cb) {
 	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
 
-beam.prototype.banUser = function(user, cb) {
-	log.warn('Banning user ' + user.name + '.');
-	this.query('put', 'chats/' + this.cid + '/ban/' + user.name, {}, cb);
-	this.resetWarnings(user);
+beam.prototype.banUser = function(user, expiry, cb) {
+	log.warn('Banning user ' + user + ' ' + (expiry ? 'until ' + expiry : 'forever') + '.');
+	
+	var self = this;
+	this.db.collection('bans').update({ service: this.id, user: user, expired: false }, { service: this.id, user: user, expiry: expiry, expired: false }, { upsert: true }, function(err) {
+		if (err) {
+			throw err;
+		}
+		
+		self.query('put', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+	});
+};
+
+beam.prototype.unbanUser = function(user, cb) {
+	log.info('Unbanning user ' + user + ' from ' + this.channel + '...');
+	
+	var self = this;
+	this.db.collection('bans').update({ user: user }, { $set: { expired: true } }, { multi: true }, function(err) {
+		if (err) {
+			throw err;
+		}
+		
+		self.query('delete', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+	});
+};
+
+beam.prototype.checkBans = function() {
+	var self = this;
+	this.db.collection('bans').find({ service: this.id, expiry: { $lte: new Date().getTime() / 1000 }, expired: false }).toArray(function(err, rows) {
+		rows.forEach(function(row) {
+			self.unbanUser(row.user);
+			self.db.collection('bans').update({ _id: row._id }, { $set: { expired: true } }, function(err) {
+				if (err) {
+					throw err;
+				}
+			});
+		});
+	});
 };
 
 beam.prototype.parseMessage = function(parts) {
@@ -322,16 +362,22 @@ beam.prototype.parseMessage = function(parts) {
 
 beam.prototype.handleMessage = function(data) {
 	this.emit('data', data);
+	var self = this;
 	if (data.ex[0].substring(0, 1) == '!') {
-		var self = this;
 		var command = data.ex[0].substring(1).toLowerCase();
-		if (self.listeners('command:' + command).length > 0 && (!(data.user.id in this.uses) || (new Date().getTime() - this.uses[data.user.id]) > 1000)) {
-			this.uses[data.user.id] = new Date().getTime();
-			data.ex.shift();
-			this.deleteMessage(data.id, function() {
-				self.emit('command:' + command, data);
-			});
-		}
+	}else if (data.ex[0].toLowerCase() == '@' + this.config.username.toLowerCase()) {
+		data.ex.shift();
+		var command = data.ex[0].toLowerCase();
+	}else{
+		return;
+	}
+	
+	if (self.listeners('command:' + command).length > 0 && (!(data.user.id in this.uses) || (new Date().getTime() - this.uses[data.user.id]) > 1000)) {
+		this.uses[data.user.id] = new Date().getTime();
+		data.ex.shift();
+		this.deleteMessage(data.id, function() {
+			self.emit('command:' + command, data);
+		});
 	}
 };
 
