@@ -18,6 +18,7 @@ function enable(service, config) {
 
 function disable(service) {
 	service.removeListener('follow', follow);
+	service.removeListener('command:setfollow', set);
 }
 
 function config(service, cb) {
