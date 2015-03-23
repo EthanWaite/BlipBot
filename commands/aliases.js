@@ -1,5 +1,5 @@
 var mongodb = require('mongodb');
-var log = require('log4js').getLogger('CUSTOM');
+var log = require('log4js').getLogger('ALIASES');
 
 module.exports = {
 	id: 'aliases',

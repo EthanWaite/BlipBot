@@ -75,7 +75,7 @@ function remove(service, db, data, cb) {
 }
 
 function set(data) {
-	if (!this.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
+	if (!this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
 		return;
 	}
 	

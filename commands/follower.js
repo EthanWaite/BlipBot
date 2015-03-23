@@ -4,7 +4,7 @@ module.exports = {
 	id: 'follow',
 	name: 'Follower Greeting',
 	description: 'This will automatically run a predefined message when someone follows the channel.',
-	commands: [],
+	commands: [ 'setfollow <message>'],
 	enable: enable,
 	disable: disable,
 	config: config
@@ -13,6 +13,7 @@ module.exports = {
 function enable(service, config) {
 	service.followMessage = config.message;
 	service.on('follow', follow);
+	service.on('command:setfollow', set);
 }
 
 function disable(service) {
@@ -29,6 +30,27 @@ function config(service, cb) {
 				default: ''
 			}
 		]
+	});
+}
+
+function set(data) {
+	if (!this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
+		return;
+	}
+	
+	if (data.ex.length < 1) {
+		return this.sendMessage('This changes the follower greeting message.', data.user.name);
+	}
+	
+	var self = this;
+	var message = data.ex.join(' ');
+	this.db.collection('modules').update({ service: this.id, module: 'follow' }, { $set: { config: { message: message } } }, function(err) {
+		if (err) {
+			return log.warn(err);
+		}
+		
+		self.followMessage = message;
+		return self.sendMessage('The follower greeting has been changed.', data.user.name);
 	});
 }
 

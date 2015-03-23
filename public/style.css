@@ -71,7 +71,7 @@ pre {
 }
 
 .banner > .container {
-	padding:24px 0px;
+	padding:24px 12px;
 	color:#fff;
 }
 
@@ -125,7 +125,8 @@ pre {
 }
 
 .container {
-	width:1000px;
+	max-width:1000px;
+	padding:0px 12px;
 	margin:0px auto;
 }
 
@@ -432,9 +433,19 @@ pre {
 	border-top:solid 1px #ddd;
 	font-size:12px;
 	color:#aaa;
-	padding:24px 0px;
+	padding:24px 12px;
 }
 
 .footer a {
 	color:#aaa;
+}
+
+@media screen and (max-width:1050px) {
+	.half {
+		width:100%;
+	}
+	
+	.content {
+		margin-bottom:0px;
+	}
 }

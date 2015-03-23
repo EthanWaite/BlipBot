@@ -16,6 +16,7 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.reconnect = true;
 	this.messages = [];
 	this.followers = [];
+	this.bypass = [];
 	this.uses = {};
 	this.warnings = {};
 	this.maxwarnings = 5;
@@ -83,17 +84,21 @@ beam.prototype.connectLive = function() {
 	}, 25000);
 	
 	socket.on('message', function(data) {
-		var slug = 'channel:' + self.cid + ':followed';
+		var slug = 'channel:' + self.cid;
 		if (data == '40') {
-			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug ] }, url: '/api/v1/live' }]));
+			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug + ':followed', slug + ':status' ] }, url: '/api/v1/live' }]));
 		}else{
 			var index = data.substring(0, 3).indexOf('[');
 			if (index != -1) {
 				var event = JSON.parse(data.substring(index));
-				if (event[0] == slug && event[1].following && self.followers.indexOf(event[1].user.id) == -1) {
+				if (event[0] == slug + ':followed' && event[1].following && self.followers.indexOf(event[1].user.id) == -1) {
 					log.info('New follower in channel ' + self.channel + ': ' + event[1].user.username);
 					self.followers.push(event[1].user.id);
 					self.emit('follow', event[1].user);
+				}
+				
+				if (event[0] == 'chat:' + self.cid + ':StartStreaming') {
+					self.emit('online');
 				}
 			}
 		}
@@ -344,6 +349,31 @@ beam.prototype.checkBans = function() {
 	});
 };
 
+beam.prototype.isFollowing = function(id, page, cb) {
+	log.info('Checking if user is following ' + this.channel + ' (page ' + page + ')...');
+	var self = this;
+	this.query('get', 'users/' + id + '/follows?limit=5&page=' + page, {}, function(err, res, body) { //TODO higher limit!
+		if (err || res.statusCode !== 200) {
+			return cb(new Error('connection error'));	
+		}
+		
+		var data = JSON.parse(body);
+		if (data.length == 0) {
+			log.info('User is not following.');
+			return cb(null, false);
+		}
+		
+		for (var i in data) {
+			if (data[i].user.id == self.cid) {
+				log.info('User is following');
+				return cb(null, true);
+			}
+		}
+		
+		self.isFollowing(id, page + 1, cb);
+	});
+};
+
 beam.prototype.parseMessage = function(parts) {
 	var result = '';
 	if (parts instanceof Array) {
@@ -386,7 +416,12 @@ beam.prototype.hasRole = function(groups, role) {
 };
 
 beam.prototype.requireRole = function(groups, sender, role) {
-	var allowed = this.hasRole(groups, role);
+	var allowed = this.hasRole(groups, role) || this.bypass.indexOf(sender) != -1;
+	if (!allowed && groups.indexOf('blipbot') != -1 && this.config.admins.indexOf(sender) != -1) {
+		this.bypass.push(sender);
+		this.sendMessage('A BlipBot admin, @' + sender + ', is using admin override. He can run some commands, but has no moderator abilities.');
+		allowed = true;
+	}
 	if (!allowed) {
 		this.sendMessage('You do not have permission to use this command', sender);
 	}

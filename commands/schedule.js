@@ -85,7 +85,7 @@ function remove(service, db, data, cb) {
 }
 
 function scheduleAdd(data) {
-	if (this.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
+	if (this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
 		var row = { service: this.id, content: data.ex.join(' ') };
 		var self = this;
 		this.db.collection('schedule').insert(row, function(err) {
@@ -100,7 +100,7 @@ function scheduleAdd(data) {
 }
 	
 function scheduleInterval(data) {
-	if (this.requireRole([ 'mod', 'owner' ], data.user.name, data.user.role)) {
+	if (this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
 		if (isNaN(data.ex[0]) || data.ex[0] < 1) {
 			return this.sendMessage('This will set the scheduler interval, in minutes.', data.user.name);
 		}
