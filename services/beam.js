@@ -22,43 +22,37 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.maxwarnings = 5;
 	
 	events.call(this);
-	
+	setInterval(this.checkBans.bind(this), 60000);
+};
+
+util.inherits(beam, events);
+
+beam.prototype.connect = function(data, cb) {
 	var self = this;
-	self.getAuth(config.username, config.password, function(err, id) {
+	this.getChannel(this.channel, function(err, channel) {
 		if (err) {
 			if (cb !== undefined) {
 				cb(err);
 			}
 			return log.warn(err);
 		}
-		
-		self.getChannel(channel, function(err, channel) {
-			if (err) {
-				if (cb !== undefined) {
-					cb(err);
-				}
-				return log.warn(err);
-			}
-			
-			self.cid = channel.id;
-			self.connectLive();
-			self.connectChat(id);
-		});
+
+		self.cid = channel.id;
+		self.connectLive();
+		self.connectChat(data);
 	});
-	
-	setInterval(this.checkBans.bind(this), 60000);
 };
 
-util.inherits(beam, events);
-
-beam.prototype.getAuth = function(username, password, cb) {
-	this.query('post', 'users/login', { username: username, password: password }, function(err, res, body) {
+beam.prototype.getAuth = function(data, cb) {
+	log.info('Authenticating with Beam as ' + data.username + '...');
+	this.query('post', 'users/login', { username: data.username, password: data.password }, function(err, res, body) {
 		if (err) {
 			return cb(err);
 		}
 		
 		if (res.statusCode != 200) {
-			return cb(new Error('internal error'));	
+			log.warn('Received status code ' + res.statusCode + ' while authenticating.');
+			return cb(new Error('invalid status code'));	
 		}
 		
 		log.info('Authenticated with Beam.');
@@ -76,8 +70,8 @@ beam.prototype.getChannel = function(username, cb) {
 			return cb(new Error('channel does not exist'));	
 		}
 		
-		if (err || res.statusCode != 200) {
-			return cb(new Error('internal error'));	
+		if (res.statusCode != 200) {
+			return cb(new Error('invalid status code ' + res.statusCode));
 		}
 		
 		log.info('Retrieved channel.');

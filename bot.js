@@ -13,9 +13,11 @@ connectMongo(function(db) {
 	web = new web(config, db, services, util.modules);
 	db.collection('services').find({}).toArray(function(err, rows) {
 		var i = 0;
-		for (var i in rows) {
-			setTimeout(registerService.bind(this, config, db, web, rows[i]), i * 2000);
-		}
+		rows.forEach(function(row) {
+			util.registerService(config, db, web, row, function(service) {
+				services[row._id] = service;
+			});
+		});
 		log.info('Services registered.');
 	});
 });
@@ -35,8 +37,4 @@ function connectMongo(cb) {
 			cb(db);
 		});
 	});
-}
-
-function registerService(config, db, web, row) {
-	services[row._id] = util.registerService(config, db, web, row);
 }
