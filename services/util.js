@@ -20,8 +20,8 @@ exports.registerService = function(config, db, web, data, cb) {
 	credentials[data.type][cfg.username] = cfg;
 	service = new service(config.services[data.type], db, data._id, data.channel);
 	
-	checkAuthentication(service, cfg, function(data) {
-		service.connect(data);
+	checkAuthentication(service, cfg, function(auth) {
+		service.connect(auth);
 		service.on('data', function(chat) {
 			web.emit('chat', chat, data._id);
 		});
