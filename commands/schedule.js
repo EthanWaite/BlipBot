@@ -121,7 +121,7 @@ function setTimer(service) {
 	service.scheduleTimer = setInterval(function() {
 		if (service.scheduleMessages.length > 0) {
 			service.sendMessage(service.scheduleMessages[0].content);
-			service.scheduleMessages.shift();
+			service.scheduleMessages.push(service.scheduleMessages.shift());
 		}
 	}, service.scheduleInterval * 60 * 1000);
 }
