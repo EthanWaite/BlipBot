@@ -93,7 +93,7 @@ module.exports = web = function(config, db, services, modules) {
 						
 						var service = require('../services/beam');
 						service = new service(config.services['beam'], app.get('db'), null, data.beam);
-						service.getAuth(function(err, data) {
+						service.getAuth(config.services['beam'], function(err, data) {
 							service.connect(data, function(err) {
 								return callback('The channel you have specified does not exist.');
 							});
