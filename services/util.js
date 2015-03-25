@@ -48,6 +48,7 @@ function checkAuthentication(service, cfg, cb) {
 			return log.warn(err);
 		}
 		
+		credentials[cfg.user] = data;
 		cb(data);
 	});
 }
