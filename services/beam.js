@@ -24,13 +24,20 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	events.call(this);
 	
 	var self = this;
-	self.getAuth(config.username, config.password, function(id) {
+	self.getAuth(config.username, config.password, function(err, id) {
+		if (err) {
+			if (cb !== undefined) {
+				cb(err);
+			}
+			return log.warn(err);
+		}
+		
 		self.getChannel(channel, function(err, channel) {
 			if (err) {
 				if (cb !== undefined) {
 					cb(err);
 				}
-				return;
+				return log.warn(err);
 			}
 			
 			self.cid = channel.id;
@@ -46,17 +53,25 @@ util.inherits(beam, events);
 
 beam.prototype.getAuth = function(username, password, cb) {
 	this.query('post', 'users/login', { username: username, password: password }, function(err, res, body) {
-		if (err || res.statusCode != 200) {
+		if (err) {
+			return cb(err);
+		}
+		
+		if (res.statusCode != 200) {
 			return cb(new Error('internal error'));	
 		}
 		
 		log.info('Authenticated with Beam.');
-		cb(JSON.parse(body).id);
+		cb(null, JSON.parse(body).id);
 	});
 };
 
 beam.prototype.getChannel = function(username, cb) {
 	this.query('get', 'channels/' + username, null, function(err, res, body) {
+		if (err) {
+			return cb(err);
+		}
+		
 		if (res.statusCode == 404) {
 			return cb(new Error('channel does not exist'));	
 		}
