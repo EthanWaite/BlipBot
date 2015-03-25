@@ -31,7 +31,7 @@ function uptime(data) {
 	var self = this;
 	this.db.collection('services').count(function(err, channels) {
 		self.db.collection('modules').count({ enabled: true }, function(err, modules) {
-			self.sendMessage('I have been online since ' + moment(this.uptime).fromNow() + '. I am now in ' + channels + ' channels, with a total of ' + modules + ' modules enabled.', data.user.name);
+			self.sendMessage('I have been online since ' + moment(self.uptime).fromNow() + '. I am now in ' + channels + ' channels, with a total of ' + modules + ' modules enabled.', data.user.name);
 		});
 	});
 }

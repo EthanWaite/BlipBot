@@ -61,7 +61,7 @@ function remove(service, db, data, cb) {
 	db.collection('commands').find(params).toArray(function(err, rows) {
 		if (err || rows.length == 0) {
 			log.warn('No rows returned when removing command.');
-			cb();	
+			return cb();	
 		}
 		
 		db.collection('commands').remove({ service: service.id, _id: new mongodb.ObjectID(data.message) }, function(err) {
