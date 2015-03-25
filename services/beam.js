@@ -292,7 +292,7 @@ beam.prototype.query = function(method, target, form, cb) {
 };
 
 beam.prototype.sendMessage = function(msg, recipient) {
-	if (this.socket.readyState != 1) {
+	if (!('socket' in this) || this.socket.readyState != 1) {
 		return log.warn('Discarding message, as connection is offline.');	
 	}
 	
@@ -364,7 +364,7 @@ beam.prototype.isFollowing = function(id, page, cb) {
 		}
 		
 		for (var i in data) {
-			if (data[i].user.id == self.cid) {
+			if (data[i].id == self.cid) {
 				log.info('User is following');
 				return cb(null, true);
 			}
