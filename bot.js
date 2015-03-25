@@ -1,6 +1,7 @@
 var fs = require('fs');
 var util = require('./services/util');
 var mongo = require('mongodb').MongoClient;
+var async = require('async');
 var log = require('log4js').getLogger('MAIN');
 
 var config = JSON.parse(fs.readFileSync('config.json'));
@@ -12,13 +13,14 @@ var web = require('./web/server');
 connectMongo(function(db) {
 	web = new web(config, db, services, util.modules);
 	db.collection('services').find({}).toArray(function(err, rows) {
-		var i = 0;
-		rows.forEach(function(row) {
+		async.eachSeries(rows, function(row, cb) {
 			util.registerService(config, db, web, row, function(service) {
 				services[row._id] = service;
+				cb();
 			});
+		}, function() {
+			log.info('Services registered.');
 		});
-		log.info('Services registered.');
 	});
 });
 
