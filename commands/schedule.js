@@ -85,30 +85,38 @@ function remove(service, db, data, cb) {
 }
 
 function scheduleAdd(data) {
-	if (this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
-		var row = { service: this.id, content: data.ex.join(' ') };
-		var self = this;
-		this.db.collection('schedule').insert(row, function(err) {
-			if (err) {
-				return log.warn(err);
-			}
-			self.scheduleMessages.push(data);
-			setTimer(self);
-			self.sendMessage('Your message has been added to the message wheel.', data.user.name);
-		});
+	if (!this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
+		return;
 	}
+	
+	if (data.ex.length < 1) {
+		return this.sendMessage('This command will add a new message to the message wheel.', data.user.name);	
+	}
+	
+	var row = { service: this.id, content: data.ex.join(' ') };
+	var self = this;
+	this.db.collection('schedule').insert(row, function(err) {
+		if (err) {
+			return log.warn(err);
+		}
+		self.scheduleMessages.push(data);
+		setTimer(self);
+		self.sendMessage('Your message has been added to the message wheel.', data.user.name);
+	});
 }
 	
 function scheduleInterval(data) {
-	if (this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
-		if (isNaN(data.ex[0]) || data.ex[0] < 1) {
-			return this.sendMessage('This will set the scheduler interval, in minutes.', data.user.name);
-		}
-
-		this.scheduleInterval = data.ex[0];
-		setTimer(this);
-		this.sendMessage('The scheduler interval has been changed to ' + data.ex[0] + ' minutes.', data.user.name);
+	if (!this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
+		return;
 	}
+	
+	if (data.ex.length < 1 || isNaN(data.ex[0]) || data.ex[0] < 1) {
+		return this.sendMessage('This will set the scheduler interval, in minutes.', data.user.name);
+	}
+
+	this.scheduleInterval = data.ex[0];
+	setTimer(this);
+	this.sendMessage('The scheduler interval has been changed to ' + data.ex[0] + ' minutes.', data.user.name);
 }
 
 function setTimer(service) {
