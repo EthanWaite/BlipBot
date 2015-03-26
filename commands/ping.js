@@ -13,6 +13,7 @@ function enable(service) {
 	service.on('command:ping', ping);
 	service.on('command:status', uptime);
 	service.on('command:uptime', uptime);
+	service.on('command:commands', commands);
 	service.on('command:bot', bot);
 }
 
@@ -20,6 +21,7 @@ function disable(service) {
 	service.removeListener('command:ping', ping);
 	service.removeListener('command:status', uptime);
 	service.removeListener('command:uptime', uptime);
+	service.removeListener('command:commands', commands);
 	service.removeListener('command:bot', bot);
 }
 
@@ -34,6 +36,16 @@ function uptime(data) {
 			self.sendMessage('I have been online since ' + moment(self.uptime).fromNow() + '. I am now in ' + channels + ' channels, with a total of ' + modules + ' modules enabled.', data.user.name);
 		});
 	});
+}
+
+function commands(data) {
+	var values = [];
+	for (var event in this._events) {
+		if (event.indexOf('command:') == 0) {
+			values.push('!' + event.split(':')[1]);
+		}
+	}
+	this.sendMessage('Commands: ' + values.join(', '), data.user.name);
 }
 
 function bot(data) {
