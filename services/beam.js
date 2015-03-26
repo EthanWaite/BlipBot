@@ -188,30 +188,31 @@ beam.prototype.connectChat = function(user, endpoint) {
 				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
 					self.emit('authenticated');
 				}else if (data.event == 'ChatMessage') {
-					if (data.data.user_name == self.config.username) {
-						if (data.data.user_role == 'Owner') {
-							self.emit('authenticated');	
+					var botMessage = data.data.user_name == self.config.username;
+					if (botMessage && data.data.user_role == 'Owner') {
+						self.emit('authenticated');	
+					}
+					
+					var text = self.parseMessage(data.data.message);
+					var message = {
+						service: 'beam',
+						time: new Date().getTime(),
+						msg: text,
+						ex: text.split(' '),
+						raw: data.data.message,
+						id: data.data.id,
+						user: {
+							id: data.data.user_id,
+							name: data.data.user_name,
+							role: data.data.user_role
 						}
-					}else{
-						var text = self.parseMessage(data.data.message);
-						var message = {
-							service: 'beam',
-							time: new Date().getTime(),
-							msg: text,
-							ex: text.split(' '),
-							raw: data.data.message,
-							id: data.data.id,
-							user: {
-								id: data.data.user_id,
-								name: data.data.user_name,
-								role: data.data.user_role
-							}
-						};
+					};
 						
+					if (!botMessage) {
 						log.info('Message in ' + self.channel + ' from ' + message.user.name + ': ' + text);
 						self.handleMessage(message);
-						self.messages.unshift(message);
 					}
+					self.messages.unshift(message);
 				}
 			}
 		});
