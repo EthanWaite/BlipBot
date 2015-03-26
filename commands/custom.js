@@ -109,7 +109,22 @@ function setupCommands(service) {
 			var name = 'command:' + row.name;
 			service.removeAllListeners(name);
 			service.on(name, function(data) {
-				service.sendMessage(row.content, data.ex[0] || data.user.name);
+				var content = row.content;
+				for (var i = 1;; i++) {
+					var value = '%' + i + '%';
+					if (content.indexOf(value) == -1) {
+						break;
+					}
+					
+					if (data.ex.length < i) {
+						return;	
+					}
+					
+					content = content.replace(new RegExp(value, 'g'), data.ex[i - 1]);
+				}
+				content = content.replace(/%%/g, data.ex.join(' '));
+				
+				service.sendMessage(content, data.ex[i - 1] || data.user.name);
 			});
 		});
 	});
