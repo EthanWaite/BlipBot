@@ -94,7 +94,7 @@ function dataHandler(data) {
 		}
 
 		if ((caps / data.msg.length * 100) > 50) {
-			this.deleteMessage(data.id, function() {
+			this.deleteMessage(data.id, null, function() {
 				self.sendMessage('Please stop speaking in all-caps.', data.user.name);	
 			});
 		}
@@ -103,7 +103,7 @@ function dataHandler(data) {
 	if ('badwords' in this.filter && this.filter.badwords) {
 		for (var i in this.blockedWords) {
 			if (data.msg.toLowerCase().indexOf(this.blockedWords[i].toLowerCase()) != -1) {
-				this.deleteMessage(data.id, function() {
+				this.deleteMessage(data.id, null, function() {
 					self.addWarning(data.user, 'bad language', function(warnings, max) {
 						self.sendMessage('Watch your language. (warning ' + warnings + '/' + max + ')', data.user.name);
 					});
@@ -121,7 +121,7 @@ function dataHandler(data) {
 			}
 		});
 		if (emotes > 3) {
-			this.deleteMessage(data.id, function() {
+			this.deleteMessage(data.id, null, function() {
 				self.addWarning(data.user, 'excessive emoticons', function(warnings, max) {
 					self.sendMessage('Please avoid excessively using emoticons. (warning ' + warnings + '/' + max + ')', data.user.name);
 				});
