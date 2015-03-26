@@ -314,7 +314,10 @@ beam.prototype.sendMessage = function(msg, recipient) {
 	this.socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 
-beam.prototype.deleteMessage = function(id, cb) {
+beam.prototype.deleteMessage = function(id, role, cb) {
+	if (role && this.hasRole([ 'mod', 'owner' ], role)) {
+		return cb();
+	}
 	log.info('Deleting message with id ' + id + '.');
 	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
@@ -415,7 +418,7 @@ beam.prototype.handleMessage = function(data) {
 	if (self.listeners('command:' + command).length > 0 && (!(data.user.id in this.uses) || (new Date().getTime() - this.uses[data.user.id]) > 1000)) {
 		this.uses[data.user.id] = new Date().getTime();
 		data.ex.shift();
-		this.deleteMessage(data.id, function() {
+		this.deleteMessage(data.id, data.user.role, function() {
 			self.emit('command:' + command, data);
 		});
 	}
