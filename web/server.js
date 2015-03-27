@@ -44,6 +44,22 @@ module.exports = web = function(config, db, services, modules) {
 	
 	var pending = [];
 	io.on('connection', function(c) {
+		c.on('watch', function(data, cb) {
+			if (!('channel' in data)) {
+				return;
+			}
+			
+			for (var i in services) {
+				var channel = services[i].channel;
+				if (channel.toLowerCase() == data.channel.toLowerCase()) {
+					c.watch = channel;
+					return cb();
+				}
+			}
+			
+			return cb('BlipBot is not in this channel.');
+		});
+		
 		if (!('userid' in c.request.session)) {
 			c.on('signup', function(data, cb) {
 				if (!('username' in data && 'password' in data && 'email' in data && 'beam' in data)) {
@@ -266,16 +282,29 @@ module.exports = web = function(config, db, services, modules) {
 		});
 	});
 	
-	this.on('chat', function(data, id) {
+	this.on('chat', function(data, channel) {
 		var sockets = io.sockets.connected;
 		for (var i in sockets) {
 			var c = sockets[i];
-			if ('service' in c && c.service._id.toString() == id.toString()) {
+			if ('service' in c && c.service._id.toString() == channel._id.toString()) {
 				c.emit('chat', data);
 			}
 		}
 	});
 	
+	this.on('follow', function(data, service) {
+		var sockets = io.sockets.connected;
+		for (var i in sockets) {
+			var c = sockets[i];
+			if ('watch' in c && c.watch.toLowerCase() == service.channel.toLowerCase()) {
+				service.getAvatar(data.id, function(url) {
+					c.emit('follow', { username: data.username, avatar: url });
+				});
+			}
+		}
+	});
+	
+	require('./overlay')(app);
 	require('./auth')(app, services);
 	require('./manage')(app);
 };

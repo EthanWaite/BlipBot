@@ -365,7 +365,7 @@ beam.prototype.checkBans = function() {
 beam.prototype.isFollowing = function(id, page, cb) {
 	log.info('Checking if user is following ' + this.channel + ' (page ' + page + ')...');
 	var self = this;
-	this.query('get', 'users/' + id + '/follows?limit=5&page=' + page, {}, function(err, res, body) { //TODO higher limit!
+	this.query('get', 'users/' + id + '/follows?limit=100&page=' + page, {}, function(err, res, body) {
 		if (err || res.statusCode !== 200) {
 			return cb(new Error('connection error'));	
 		}
@@ -387,12 +387,24 @@ beam.prototype.isFollowing = function(id, page, cb) {
 	});
 };
 
+beam.prototype.getAvatar = function(id, cb) {
+	var normal = 'https://beam.pro/img/media/profile.jpg';
+	this.query('get', 'users/' + id, {}, function(err, res, body) {
+		if (err || res.statusCode != 200) {
+			return cb(normal);
+		}
+		
+		var avatars = JSON.parse(body).avatars;
+		cb(avatars.length > 2 ? avatars[2].url : normal);
+	});
+};
+
 beam.prototype.parseMessage = function(parts) {
 	var result = '';
 	if (parts instanceof Array) {
 		parts.forEach(function(part) {
 			if (part.type == 'text') {
-				result = result + part.data;	
+				result = result + part.data;
 			}else{
 				result = result + part.text;
 			}
