@@ -38,6 +38,7 @@ beam.prototype.connect = function(data, cb) {
 		}
 
 		self.cid = channel.id;
+		self.game = channel.type;
 		self.connectLive();
 		self.connectChat(data);
 	});
@@ -95,7 +96,7 @@ beam.prototype.connectLive = function() {
 	socket.on('message', function(data) {
 		var slug = 'channel:' + self.cid;
 		if (data == '40') {
-			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug + ':followed', slug + ':status' ] }, url: '/api/v1/live' }]));
+			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug + ':update', slug + ':status', slug + ':followed' ] }, url: '/api/v1/live' }]));
 		}else{
 			var index = data.substring(0, 3).indexOf('[');
 			if (index != -1) {
@@ -108,6 +109,10 @@ beam.prototype.connectLive = function() {
 				
 				if (event[0] == 'chat:' + self.cid + ':StartStreaming') {
 					self.emit('online');
+				}
+				
+				if (event[0] == 'channel:' + self.cid + ':update') {
+					self.game = event[1].type;
 				}
 			}
 		}

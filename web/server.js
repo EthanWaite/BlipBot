@@ -282,11 +282,11 @@ module.exports = web = function(config, db, services, modules) {
 		});
 	});
 	
-	this.on('chat', function(data, channel) {
+	this.on('chat', function(data, id) {
 		var sockets = io.sockets.connected;
 		for (var i in sockets) {
 			var c = sockets[i];
-			if ('service' in c && c.service._id.toString() == channel._id.toString()) {
+			if ('service' in c && c.service._id.toString() == id.toString()) {
 				c.emit('chat', data);
 			}
 		}

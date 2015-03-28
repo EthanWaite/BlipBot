@@ -7,7 +7,7 @@ module.exports = function(app) {
 	});
 	
 	app.get('/:type', function(req, res) {
-		var order = [ 'custom', 'clear', 'filter', 'follow', 'links', 'raffle', 'schedule', 'aliases', 'seen', 'ping' ];
+		var order = [ 'custom', 'clear', 'filter', 'follow', 'links', 'raffle', 'schedule', 'aliases', 'seen', 'game', 'ping' ];
 		var modules = app.get('modules');
 		async.each(Object.keys(app.get('modules')), function(m, cb) {
 			app.get('db').collection('modules').find({ service: req.service._id, module: modules[m].id }).toArray(function(err, rows) {
