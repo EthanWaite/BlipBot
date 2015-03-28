@@ -153,7 +153,7 @@ function enable(service) {
 }
 
 function disable(service) {
-	service.removeListener('command:game', gamen);
+	service.removeListener('command:game', game);
 }
 
 function game(data) {
