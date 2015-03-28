@@ -158,7 +158,7 @@ function chatLock(data) {
 }
 
 function dataHandler(data) {
-	if ('lockdown' in this && this.lockdown && [ 'Mod', 'Owner', 'Developer', 'Admin' ].indexOf(data.user.role) == -1) {
+	if ('chatLockStatus' in this && this.chatLockStatus && [ 'Mod', 'Owner', 'Developer', 'Admin' ].indexOf(data.user.role) == -1) {
 		this.deleteMessage(data.id);
 	}
 }
