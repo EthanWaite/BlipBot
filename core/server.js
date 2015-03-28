@@ -138,11 +138,14 @@ module.exports = web = function(config, db, services, modules) {
 							if (err) {
 								return callback(err);
 							}
-							app.get('db').collection('users').insert({ username: data.username, password: hash, email: data.email }, function(err, record) {
+							app.get('db').collection('users').insert({ username: data.username, password: hash, email: data.email }, function(err, records) {
 								if (err) {
 									return callback(err);
 								}
-								callback(null, service, record[0]._id);
+								if (records.length < 1) {
+									return callback(new Error('unable to create user'));	
+								}
+								callback(null, service, records[0]._id);
 							});
 						});
 					},
@@ -151,6 +154,9 @@ module.exports = web = function(config, db, services, modules) {
 						app.get('db').collection('services').insert({ user: user, type: 'beam', channel: data.beam }, function(err, records) {
 							if (err) {
 								return callback(err);
+							}
+							if (records.length < 1) {
+								return callback(new Error('unable to create service'));
 							}
 							service.sendMessage('BlipBot is now online. You can now manage me from the web interface.');
 							service.id = records[0]._id;
@@ -165,7 +171,6 @@ module.exports = web = function(config, db, services, modules) {
 								if (err) {
 									return log.warn(err);
 								}
-								
 								log.debug('Enabling module ' + i + ' for new signup.');
 								modules[i].enable(service, {});
 								callback();
