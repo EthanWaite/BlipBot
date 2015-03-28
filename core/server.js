@@ -304,9 +304,9 @@ module.exports = web = function(config, db, services, modules) {
 		}
 	});
 	
-	require('./overlay')(app);
-	require('./auth')(app, services);
-	require('./manage')(app);
+	require('../web/overlay')(app);
+	require('../web/auth')(app, services);
+	require('../web/manage')(app);
 };
 
 function sendFollow(c, service, data) {

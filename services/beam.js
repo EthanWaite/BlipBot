@@ -3,8 +3,8 @@ var util = require('util');
 var request = require('request');
 var websocket = require('ws');
 var ent = require('ent');
-var mongodb = require('mongodb');
 var log = require('log4js').getLogger('BEAM');
+var statistics = require('../core/statistics');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
@@ -22,6 +22,8 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.maxwarnings = 5;
 	
 	events.call(this);
+	statistics.call(this);
+	
 	setInterval(this.checkBans.bind(this), 60000);
 };
 
