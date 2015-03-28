@@ -383,7 +383,7 @@ beam.prototype.isFollowing = function(id, page, cb) {
 		
 		for (var i in data) {
 			if (data[i].id == self.cid) {
-				log.info('User is following');
+				log.info('User is following ' + self.channel + '.');
 				return cb(null, true);
 			}
 		}

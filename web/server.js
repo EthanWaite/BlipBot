@@ -11,9 +11,11 @@ var validator = require('validator');
 var events = require('events').EventEmitter;
 var util = require('util');
 var log = require('log4js').getLogger('WEB');
+var socket = require('./socket');
 
 module.exports = web = function(config, db, services, modules) {
 	events.call(this);
+	socket(config, services);
 	
 	var app = express();
 	app.set('db', db);
@@ -297,9 +299,7 @@ module.exports = web = function(config, db, services, modules) {
 		for (var i in sockets) {
 			var c = sockets[i];
 			if ('watch' in c && c.watch.toLowerCase() == service.channel.toLowerCase()) {
-				service.getAvatar(data.id, function(url) {
-					c.emit('follow', { username: data.username, avatar: url });
-				});
+				sendFollow(c, service, data);
 			}
 		}
 	});
@@ -308,5 +308,11 @@ module.exports = web = function(config, db, services, modules) {
 	require('./auth')(app, services);
 	require('./manage')(app);
 };
+
+function sendFollow(c, service, data) {
+	service.getAvatar(data.id, function(url) {
+		c.emit('follow', { username: data.username, avatar: url });
+	});
+}
 
 util.inherits(web, events);
