@@ -1,4 +1,5 @@
 var request = require('request');
+var cheerio = require('cheerio');
 var log = require('log4js').getLogger('GAME');
 
 var games = {
@@ -142,8 +143,8 @@ var games = {
 module.exports = {
 	id: 'game',
 	name: 'Game',
-	description: 'This module displays information about the current game, as set on Beam. The game\'s price and link will be provided, where possible.',
-	commands: [ 'game' ],
+	description: 'This module displays information about the current game, as set on Beam. The game\'s price and link will be provided, where possible. Alternatively, you can pass a search term to the command, and the bot will search Steam.',
+	commands: [ 'game [search]' ],
 	enable: enable,
 	disable: disable
 };
@@ -157,6 +158,38 @@ function disable(service) {
 }
 
 function game(data) {
+	var self = this;
+	if (data.ex.length > 0) {
+		request('http://store.steampowered.com/search/?cc=us&term=' + data.ex.join(' '), function(err, res, body) {
+			if (err || res.statusCode != 200) {
+				return self.sendMessage('I tried searching on Steam, but received an unexpected error.', data.user.name);
+			}
+			
+			var i = cheerio.load(body)('a.search_result_row').first();
+			
+			if (i.find('.col.search_price').length == 0) {
+				return self.sendMessage('I tried searching on Steam, but I couldn\'t find the game you were looking for.', data.user.name);
+			}
+			
+			console.log(i);
+			
+			var price = i.find('.col.search_price').text().trim();			
+			var pex = i.find('.col.search_price').html().split('<br>');
+			if (pex.length == 2) {
+				var discount = i.find('.col.search_discount span').text();
+				var dex = discount.split('-');
+				if (dex.length == 2) {
+					discount = dex[1];
+				}
+				
+				price = pex[1].trim() + ' (' + discount + ' off, normally ' + pex[1].trim() + ')';
+			}
+			
+			self.sendMessage('I searched on Steam, and found ' + i.find('.title').text() + ' for ' + price + ' at ' + i.attr('href').split('?')[0], data.user.name);
+		});
+		return;
+	}
+	
 	if (!this.game) {
 		return this.sendMessage('The streamer has not marked themselves as playing a game on Beam.', data.user.name);	
 	}
@@ -168,7 +201,6 @@ function game(data) {
 	var game = games[this.game];
 	
 	if (game.type == 'steam') {
-		var self = this;
 		request('http://store.steampowered.com/api/appdetails?appids=' + game.id + '&cc=US&l=English', function(err, res, body) {
 			if (err) {
 				log.warn(err);
