@@ -52,6 +52,10 @@ function statistics(data) {
 			if (err) {
 				return log.warn(err);
 			}
+			
+			if (result.length < 1) {
+				return self.sendMessage('I have not been here long enough to gather any statistics.', data.user.name);
+			}
 
 			self.sendMessage('There have been ' + (result[0].messages + current.messages) + ' messages, with ' + (result[0].words + current.words) + ' words and ' + (result[0].characters + current.characters) + ' characters, in this channel.', data.user.name);
 		});
