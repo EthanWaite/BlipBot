@@ -329,29 +329,47 @@ beam.prototype.deleteMessage = function(id, role, cb) {
 	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
 
-beam.prototype.banUser = function(user, expiry, cb) {
-	log.warn('Banning user ' + user + ' ' + (expiry ? 'until ' + expiry : 'forever') + '.');
+beam.prototype.banUser = function(username, expiry, cb) {
+	log.warn('Banning user ' + username + ' ' + (expiry ? 'until ' + expiry : 'forever') + '.');
 	
 	var self = this;
-	this.db.collection('bans').update({ service: this.id, user: user, expired: false }, { service: this.id, user: user, expiry: expiry, expired: false }, { upsert: true }, function(err) {
-		if (err) {
-			throw err;
+	this.getUser(username, function(err, user) {
+		if (err || !user) {
+			if (cb !== undefined) {
+				cb(new Error('unable to ban'));
+			}
+			return log.warn('Unable to ban user ' + username + '.');
 		}
 		
-		self.query('put', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+		self.db.collection('bans').update({ service: this.id, user: user.name, expired: false }, { service: this.id, user: user.name, id: user.id, expiry: expiry, expired: false }, { upsert: true }, function(err) {
+			if (err) {
+				throw err;
+			}
+
+			self.query('patch', 'channels/' + self.cid + '/users/' + user.id, { add: 'Banned' }, cb);
+		});
 	});
 };
 
-beam.prototype.unbanUser = function(user, cb) {
-	log.info('Unbanning user ' + user + ' from ' + this.channel + '...');
+beam.prototype.unbanUser = function(username, cb) {
+	log.info('Unbanning user ' + username + ' from ' + this.channel + '...');
 	
 	var self = this;
-	this.db.collection('bans').update({ user: user }, { $set: { expired: true } }, { multi: true }, function(err) {
-		if (err) {
-			throw err;
+	this.getUser(username, function(err, user) {
+		if (err || !user) {
+			if (cb !== undefined) {
+				cb(new Error('unable to unban'));
+			}
+			return log.warn('Unable to unban user ' + username + '.');
 		}
 		
-		self.query('delete', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+		self.db.collection('bans').update({ user: user }, { $set: { expired: true } }, { multi: true }, function(err) {
+			if (err) {
+				throw err;
+			}
+
+			self.query('patch', 'channels/' + self.cid + '/users/' + user.id, { remove: 'Banned' }, cb);
+		});
 	});
 };
 
