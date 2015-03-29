@@ -102,7 +102,8 @@ function dataHandler(data) {
 
 	if ('badwords' in this.filter && this.filter.badwords) {
 		for (var i in this.blockedWords) {
-			if (data.msg.toLowerCase().indexOf(this.blockedWords[i].toLowerCase()) != -1) {
+			var stripped = ' ' + data.msg.toLowerCase().replace(/[^\w\s]/g, '') + ' ';
+			if (stripped.indexOf(' ' + this.blockedWords[i].toLowerCase() + ' ') != -1) {
 				this.deleteMessage(data.id, null, function() {
 					self.addWarning(data.user, 'bad language', function(warnings, max) {
 						self.sendMessage('Watch your language. (warning ' + warnings + '/' + max + ')', data.user.name);
