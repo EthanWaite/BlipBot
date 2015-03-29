@@ -118,7 +118,7 @@ function clear(data) {
 	
 	var self = this;
 	this.messages.forEach(function(msg) {
-		if (msg.user.name.toLowerCase() == this.parseUser(data.ex[0]).toLowerCase()) {
+		if (msg.user.name.toLowerCase() == self.parseUser(data.ex[0]).toLowerCase()) {
 			self.deleteMessage(msg.id);
 		}
 	});
