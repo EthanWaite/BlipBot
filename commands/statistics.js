@@ -60,10 +60,7 @@ function statistics(data) {
 			self.sendMessage('There have been ' + (result[0].messages + current.messages) + ' messages, with ' + (result[0].words + current.words) + ' words and ' + (result[0].characters + current.characters) + ' characters, in this channel.', data.user.name);
 		});
 	}else{
-		var user = data.ex[0];
-		if (user.indexOf('@') == 0) {
-			user = user.substring(1);	
-		}
+		var user = this.parseUser(data.ex[0]);
 		
 		async.series([
 			function(cb) {

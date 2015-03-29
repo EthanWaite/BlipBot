@@ -459,3 +459,10 @@ beam.prototype.requireRole = function(groups, sender, role) {
 	}
 	return allowed;
 };
+
+beam.prototype.parseUser = function(user) {
+	if (user.substring(0, 1) == '@') {
+		return user.substring(1);
+	}
+	return user;
+};

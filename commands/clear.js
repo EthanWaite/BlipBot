@@ -43,7 +43,7 @@ function warn(data) {
 	}
 	
 	var self = this;
-	this.getUser(data.ex[0], function(err, user) {
+	this.getUser(this.parseUser(data.ex[0]), function(err, user) {
 		if (err) {
 			return log.warn(err);
 		}
@@ -85,8 +85,9 @@ function mute(data) {
 	}
 	
 	var self = this;
-	this.banUser(data.ex[0], time, function() {
-		self.sendMessage('The user @' + data.ex[0] + ' has been muted' + (time ? ', and will be unmuted ' + date.from(new Date()) : ' permanently') + '.', data.user.name);
+	var user = this.parseUser(data.ex[0]);
+	this.banUser(user, time, function() {
+		self.sendMessage('The user @' + user + ' has been muted' + (time ? ', and will be unmuted ' + date.from(new Date()) : ' permanently') + '.', data.user.name);
 	});
 }
 
@@ -100,8 +101,9 @@ function unmute(data) {
 	}
 	
 	var self = this;
-	this.unbanUser(data.ex[1], function() {
-		self.sendMessage('The user @' + data.ex[0] + ' has been unmuted.', data.user.name);
+	var user = this.parseUser(data.ex[0]);
+	this.unbanUser(user, function() {
+		self.sendMessage('The user @' + user + ' has been unmuted.', data.user.name);
 	});
 }
 
@@ -116,7 +118,7 @@ function clear(data) {
 	
 	var self = this;
 	this.messages.forEach(function(msg) {
-		if (msg.user.name.toLowerCase() == data.ex[0].toLowerCase()) {
+		if (msg.user.name.toLowerCase() == this.parseUser(data.ex[0]).toLowerCase()) {
 			self.deleteMessage(msg.id);
 		}
 	});
