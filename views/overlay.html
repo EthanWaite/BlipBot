@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Follower Notifications</title>
+		<style>
+			@import url('http://fonts.googleapis.com/css?family=Open+Sans:400,700,300');
+			
+			body {
+				background-color:blue;
+				text-align:center;
+				overflow-x:hidden;
+				margin:0px;
+			}
+			
+			body, input, select {
+				font-family:Open Sans, Trebuchet MS, Arial, sans-serif;
+			}
+			
+			h1, h2, h3 {
+				font-weight:300;
+				margin:0px;
+			}
+			
+			.main {
+				display:none;
+				width:480px;
+				margin:128px auto;
+			}
+			
+			.settings {
+				background-color:rgba(0, 0, 0, 0.6);
+				text-align:left;
+				color:#fff;
+				padding:12px;
+				overflow:hidden;
+			}
+			
+			.settings h2 {
+				margin-bottom:16px;
+			}
+			
+			.settings form div {
+				width:33.3%;
+				float:left;
+				box-sizing:border-box;
+				margin-bottom:12px;
+			}
+			
+			.settings form label {
+				display:block;
+			}
+			
+			.settings input {
+				width:100%;
+			}
+			
+			.settings input, .settings select {
+				box-sizing:border-box;
+				padding:9px;
+			}
+			
+			.settings input.color {
+				width:50%;	
+			}
+			
+			.settings input#url {
+				margin-top:16px;
+			}
+			
+			.preview {
+				text-align:center;
+				margin-bottom:32px;
+			}
+			
+			.follow {
+				display:inline-block;
+				width:320px;
+				background-color:#fff;
+				border-radius:0px 100px 100px 0px;
+				overflow:hidden;
+				transition:transform .5s ease;
+			}
+			
+			.follow img {
+				width:84px;
+				height:auto;
+				float:left;
+			}
+			
+			.follow div {
+				padding:12px 9px 12px 0px;
+			}
+			
+			body > .follow {
+				position:absolute;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div class="main">
+			<div class="preview">
+				<div class="follow">
+					<img src="https://beam.pro/img/media/profile.jpg?v=0" />
+					<div>
+						Thank you for following
+						<h2>ExampleUser</h2>
+					</div>
+				</div>
+			</div>
+			<div class="settings">
+				<h2>Customize follower notifications</h2>
+				<form>
+					<div>
+						<label for="background">Chroma color:</label>
+						<input type="text" class="color" id="chroma" value="blue" />
+					</div>
+					<div>
+						<label for="notification">Notification color:</label>
+						<input type="text" class="color" id="notification" value="#111" />
+					</div>
+					<div>
+						<label for="text">Text color:</label>
+						<input type="text" class="color" id="text" value="#fff" />
+					</div>
+					
+					<div>
+						<label for="notificationposition">Notification:</label>
+						<select id="notificationposition">
+							<option value="top-left">Top Left</option>
+							<option value="top-center">Top Center</option>
+							<option value="top-right">Top Right</option>
+							<option value="bottom-left">Bottom Left</option>
+							<option value="bottom-center">Bottom Center</option>
+							<option value="bottom-right">Bottom Right</option>
+						</select>
+					</div>
+					
+					<div>
+						<label for="imageposition">Image:</label>
+						<select id="imageposition">
+							<option value="left">Left</option>
+							<option value="right">Right</option>
+						</select>
+					</div>
+					
+					<div>
+						<label for="channel">Channel:</label>
+						<input id="channel" value="{{channel}}" />
+					</div>
+					
+					<input type="text" id="url" readonly />
+				</form>
+			</div>
+		</div>
+		
+		<script src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="/js/ion.sound.min.js"></script>
+		<script>
+			$(document).ready(function() {
+				ion.sound({
+					sounds: [
+						{
+							name: 'button_tiny'
+						}
+					],
+					path: '/sounds/',
+					preload: true
+				});
+				
+				var settings = getParams();
+				
+				if (settings) {
+					var socket = io();
+					socket.on('connect', function(data) {
+						refreshSettings(settings);
+						console.log('connected');
+						socket.emit('watch', { channel: '{{ channel }}' }, function(err) {
+							console.log(err);
+						});
+					});
+					
+					socket.on('follow', function(data) {
+						var $follow = $('<div class="follow"></div>').append($('<img />').attr('src', data.avatar)).append('<div>Thank you for following<h2>' + data.username + '</h2></div>').hide().appendTo('body');
+						refreshSettings(settings);
+						
+						var pex = settings.position.split('-');
+						$follow.css(pex[0], 30).css(pex[1], -320);
+						
+						if (pex[1] == 'center') {
+							$follow.css({ transform: 'scale(0)', left: '0px', right: '0px', margin: '0px auto' });
+							$follow.show().css({ transform: 'scale(1)' });
+							setTimeout(function() {
+								$follow.css({ transform: 'scale(0)' });	
+							}, 8000);
+							setTimeout(function() {
+								$follow.remove();
+							}, 9000);
+						}else{
+							var properties = {};
+							properties[pex[1]] = 0;
+							$follow.show().css({ position: 'absolute' }).animate(properties, 400, function() {
+								properties[pex[1]] = -320;
+								$(this).delay(8000).animate(properties, 400, function() {
+									$(this).remove();
+								});
+							});
+						}
+						
+						ion.sound.play('button_tiny');
+					});
+				}else{
+					$('.main').show();
+				}
+			});
+			
+			function getParams() {
+				var query = window.location.search;
+				if (query.length < 2) {
+					return null;
+				}
+				
+				var settings = {};
+				query.substring(1).split('&').forEach(function(element) {
+					var split = element.split('=');
+					settings[split[0]] = decodeURIComponent(split[1]);
+				});
+				
+				var params = [ 'chroma', 'notification', 'text', 'position', 'image' ];
+				for (var i in params) {
+					if (!(params[i] in settings)) {
+						return null;
+					}
+				}
+				return settings;
+			}
+			
+			function refreshSettings(settings) {
+				$('body').css({ 'background-color': settings.chroma });
+				$('.follow').css({ 'background-color': settings.notification, 'color': settings.text });
+				$('.follow img').css({ 'float': settings.image });
+				
+				switch (settings.position.split('-')[1]) {
+					case 'left':
+						$('.follow').css({ 'border-radius': '0px 100px 100px 0px' });
+						break;
+					
+					case 'center':
+						$('.follow').css({ 'border-radius': '100px' });
+						break;
+					
+					case 'right':
+						$('.follow').css({ 'border-radius': '100px 0px 0px 100px' });
+						break;
+				}
+				
+				var encoded = [];
+				for (var i in settings) {
+					encoded.push(i + '=' + encodeURIComponent(settings[i]));
+				}
+				$('input#url').val('http://blipbot.dead-i.co.uk:3636/overlay/' + $('input#channel').val() + '?' + encoded.join('&'));
+			}
+			
+			function parseSettings() {
+				return {
+					chroma: $('input.color#chroma').val(),
+					notification: $('input.color#notification').val(),
+					text: $('input.color#text').val(),
+					position: $('select#notificationposition').val(),
+					image: $('select#imageposition').val()
+				};
+			}
+			
+			function readSettings() {
+				refreshSettings(parseSettings());	
+			}
+			
+			$(document).ready(readSettings);
+			$('.settings input, .settings select').on('change keyup', readSettings);
+			
+			$('input#url').click(function() {
+				$(this).select();
+			});
+		</script>
+	</body>
+</html>

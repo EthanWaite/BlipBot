@@ -5,7 +5,7 @@ module.exports = {
 	id: 'custom',
 	name: 'Custom Messages',
 	description: 'This allows moderators to define custom commands, which will display a message of their choice.',
-	commands: [ 'set <name> <message>' ],
+	commands: [ 'set <name> <message>', 'unset <name>' ],
 	enable: enable,
 	disable: disable,
 	config: config,
@@ -16,10 +16,12 @@ module.exports = {
 function enable(service) {
 	setupCommands(service);
 	service.on('command:set', set);
+	service.on('command:unset', unset);
 }
 
 function disable(service) {
 	service.removeListener('command:set', set);
+	service.removeListener('command:unset', unset);
 }
 
 function config(service, cb) {
@@ -84,18 +86,51 @@ function set(data) {
 	}
 	
 	var command = parseCommand(data.ex[0]);
-	if (this.listeners(command).length > 0) {
-		return this.sendMessage('You cannot override a predefined command.', data.user.name);	
-	}
 	
 	var self = this;
-	this.db.collection('commands').insert({ service: this.id, name: command, content: data.ex.slice(1).join(' ') }, function(err) {
+	this.db.collection('commands').count({ service: this.id, name: command }, function(err, count) {
 		if (err) {
 			throw err;
 		}
+		
+		if (count == 0 && self.listeners('command:' + command).length > 0) {
+			return self.sendMessage('You cannot override a predefined command.', data.user.name);
+		}
+		
+		self.db.collection('commands').update({ service: self.id, name: command }, { service: self.id, name: command, content: data.ex.slice(1).join(' ') }, { upsert: true }, function(err) {
+			if (err) {
+				throw err;
+			}
 
-		self.sendMessage('Command !' + command + ' has been set.', data.user.name);
-		setupCommands(self);
+			self.sendMessage('Command !' + command + ' has been set.', data.user.name);
+			setupCommands(self);
+		});
+	});
+}
+
+function unset(data) {
+	if (!this.requireRole([ 'mod', 'owner', 'blipbot' ], data.user.name, data.user.role)) {
+		return;
+	}
+	
+	if (data.ex.length < 1) {
+		return this.sendMessage('This removes a custom command you have already defined.', data.user.name);
+	}
+	
+	var command = parseCommand(data.ex[0]);
+	
+	var self = this;
+	this.db.collection('commands').remove({ service: self.id, name: command }, function(err, res) {
+		if (err) {
+			throw err;
+		}
+		
+		if (res == 0) {
+			return self.sendMessage('This command is not set as a custom command.', data.user.name);
+		}
+		
+		self.sendMessage('Command !' + command + ' has been removed.', data.user.name);
+		self.removeAllListeners('command:' + command);
 	});
 }
 
@@ -109,7 +144,22 @@ function setupCommands(service) {
 			var name = 'command:' + row.name;
 			service.removeAllListeners(name);
 			service.on(name, function(data) {
-				service.sendMessage(row.content, data.ex[0] || data.user.name);
+				var content = row.content;
+				for (var i = 1;; i++) {
+					var value = '%' + i + '%';
+					if (content.indexOf(value) == -1) {
+						break;
+					}
+					
+					if (data.ex.length < i) {
+						return;	
+					}
+					
+					content = content.replace(new RegExp(value, 'g'), data.ex[i - 1]);
+				}
+				content = content.replace(/%%/g, data.ex.join(' '));
+				
+				service.sendMessage(content, data.ex[i - 1] || data.user.name);
 			});
 		});
 	});

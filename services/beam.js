@@ -3,8 +3,8 @@ var util = require('util');
 var request = require('request');
 var websocket = require('ws');
 var ent = require('ent');
-var mongodb = require('mongodb');
 var log = require('log4js').getLogger('BEAM');
+var statistics = require('../core/statistics');
 
 var agent = 'Mozilla/5.0 (compatible; BlipBot/1.0)';
 
@@ -22,6 +22,8 @@ module.exports = beam = function(config, db, id, channel, cb) {
 	this.maxwarnings = 5;
 	
 	events.call(this);
+	statistics.call(this);
+	
 	setInterval(this.checkBans.bind(this), 60000);
 };
 
@@ -38,6 +40,7 @@ beam.prototype.connect = function(data, cb) {
 		}
 
 		self.cid = channel.id;
+		self.game = channel.type;
 		self.connectLive();
 		self.connectChat(data);
 	});
@@ -95,7 +98,7 @@ beam.prototype.connectLive = function() {
 	socket.on('message', function(data) {
 		var slug = 'channel:' + self.cid;
 		if (data == '40') {
-			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug + ':followed', slug + ':status' ] }, url: '/api/v1/live' }]));
+			socket.send(self.call++ + JSON.stringify([ 'put', { method: 'put', headers: {}, data: { slug: [ slug + ':update', slug + ':status', slug + ':followed' ] }, url: '/api/v1/live' }]));
 		}else{
 			var index = data.substring(0, 3).indexOf('[');
 			if (index != -1) {
@@ -108,6 +111,10 @@ beam.prototype.connectLive = function() {
 				
 				if (event[0] == 'chat:' + self.cid + ':StartStreaming') {
 					self.emit('online');
+				}
+				
+				if (event[0] == 'channel:' + self.cid + ':update') {
+					self.game = event[1].type;
 				}
 			}
 		}
@@ -188,30 +195,31 @@ beam.prototype.connectChat = function(user, endpoint) {
 				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
 					self.emit('authenticated');
 				}else if (data.event == 'ChatMessage') {
-					if (data.data.user_name == self.config.username) {
-						if (data.data.user_role == 'Owner') {
-							self.emit('authenticated');	
+					var botMessage = data.data.user_name == self.config.username;
+					if (botMessage && data.data.user_role == 'Owner') {
+						self.emit('authenticated');	
+					}
+					
+					var text = self.parseMessage(data.data.message);
+					var message = {
+						service: 'beam',
+						time: new Date().getTime(),
+						msg: text,
+						ex: text.split(' '),
+						raw: data.data.message,
+						id: data.data.id,
+						user: {
+							id: data.data.user_id,
+							name: data.data.user_name,
+							role: data.data.user_role
 						}
-					}else{
-						var text = self.parseMessage(data.data.message);
-						var message = {
-							service: 'beam',
-							time: new Date().getTime(),
-							msg: text,
-							ex: text.split(' '),
-							raw: data.data.message,
-							id: data.data.id,
-							user: {
-								id: data.data.user_id,
-								name: data.data.user_name,
-								role: data.data.user_role
-							}
-						};
+					};
 						
+					if (!botMessage) {
 						log.info('Message in ' + self.channel + ' from ' + message.user.name + ': ' + text);
 						self.handleMessage(message);
-						self.messages.unshift(message);
 					}
+					self.messages.unshift(message);
 				}
 			}
 		});
@@ -313,7 +321,10 @@ beam.prototype.sendMessage = function(msg, recipient) {
 	this.socket.send(JSON.stringify({ type: 'method', method: 'msg', arguments: [ msg ] }));
 };
 
-beam.prototype.deleteMessage = function(id, cb) {
+beam.prototype.deleteMessage = function(id, role, cb) {
+	if (role && this.hasRole([ 'mod', 'owner' ], role)) {
+		return cb();
+	}
 	log.info('Deleting message with id ' + id + '.');
 	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
@@ -361,7 +372,7 @@ beam.prototype.checkBans = function() {
 beam.prototype.isFollowing = function(id, page, cb) {
 	log.info('Checking if user is following ' + this.channel + ' (page ' + page + ')...');
 	var self = this;
-	this.query('get', 'users/' + id + '/follows?limit=5&page=' + page, {}, function(err, res, body) { //TODO higher limit!
+	this.query('get', 'users/' + id + '/follows?limit=100&page=' + page, {}, function(err, res, body) {
 		if (err || res.statusCode !== 200) {
 			return cb(new Error('connection error'));	
 		}
@@ -374,7 +385,7 @@ beam.prototype.isFollowing = function(id, page, cb) {
 		
 		for (var i in data) {
 			if (data[i].id == self.cid) {
-				log.info('User is following');
+				log.info('User is following ' + self.channel + '.');
 				return cb(null, true);
 			}
 		}
@@ -383,12 +394,24 @@ beam.prototype.isFollowing = function(id, page, cb) {
 	});
 };
 
+beam.prototype.getAvatar = function(id, cb) {
+	var normal = 'https://beam.pro/img/media/profile.jpg';
+	this.query('get', 'users/' + id, {}, function(err, res, body) {
+		if (err || res.statusCode != 200) {
+			return cb(normal);
+		}
+		
+		var avatars = JSON.parse(body).avatars;
+		cb(avatars.length > 2 ? avatars[2].url : normal);
+	});
+};
+
 beam.prototype.parseMessage = function(parts) {
 	var result = '';
 	if (parts instanceof Array) {
 		parts.forEach(function(part) {
 			if (part.type == 'text') {
-				result = result + part.data;	
+				result = result + part.data;
 			}else{
 				result = result + part.text;
 			}
@@ -414,7 +437,7 @@ beam.prototype.handleMessage = function(data) {
 	if (self.listeners('command:' + command).length > 0 && (!(data.user.id in this.uses) || (new Date().getTime() - this.uses[data.user.id]) > 1000)) {
 		this.uses[data.user.id] = new Date().getTime();
 		data.ex.shift();
-		this.deleteMessage(data.id, function() {
+		this.deleteMessage(data.id, data.user.role, function() {
 			self.emit('command:' + command, data);
 		});
 	}
@@ -435,4 +458,11 @@ beam.prototype.requireRole = function(groups, sender, role) {
 		this.sendMessage('You do not have permission to use this command', sender);
 	}
 	return allowed;
+};
+
+beam.prototype.parseUser = function(user) {
+	if (user.substring(0, 1) == '@') {
+		return user.substring(1);
+	}
+	return user;
 };

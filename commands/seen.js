@@ -28,10 +28,7 @@ function lastSeen(data) {
 		return this.sendMessage('This will display how long a user has been idle for.', data.user.name);
 	}
 
-	var user = data.ex[0];
-	if (user.substring(0, 1) == '@') {
-		user = user.substring(1);	
-	}
+	var user = this.parseUser(data.ex[0]);
 
 	for (var name in this.userTimes) {
 		if (name.toLowerCase() == user.toLowerCase()) {

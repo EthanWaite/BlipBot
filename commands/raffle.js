@@ -1,6 +1,4 @@
 var log = require('log4js').getLogger('RAFFLE');
-var users = [];
-var term = null;
 
 module.exports = {
 	id: 'raffle',
@@ -26,7 +24,7 @@ function disable(service) {
 }
 
 function dataHandler(data) {
-	if (this.raffleTerm && users.indexOf(data.user.name) == -1 && data.msg.indexOf(this.raffleTerm) != -1) {
+	if (this.raffleTerm && this.raffleUsers.indexOf(data.user.name) == -1 && data.msg.toLowerCase().indexOf(this.raffleTerm.toLowerCase()) != -1) {
 		log.info('Entering ' + data.user.name + ' into the draw.');
 		this.raffleUsers.push(data.user.name);
 	}
@@ -46,7 +44,7 @@ function raffleEnd(data) {
 			return this.sendMessage('Nobody entered the raffle this time. Awh. :(', data.user.name);	
 		}
 
-		this.sendMessage('@' + this.raffleUsers[Math.floor(Math.random() * users.length)] + ' has been randomly drawn.');
+		this.sendMessage('@' + this.raffleUsers[Math.floor(Math.random() * this.raffleUsers.length)] + ' has been randomly drawn.');
 		this.raffleUsers = [];
 		this.raffleTerm = null;
 	}

@@ -11,9 +11,11 @@ var validator = require('validator');
 var events = require('events').EventEmitter;
 var util = require('util');
 var log = require('log4js').getLogger('WEB');
+var socket = require('./socket');
 
 module.exports = web = function(config, db, services, modules) {
 	events.call(this);
+	socket(config, services);
 	
 	var app = express();
 	app.set('db', db);
@@ -44,6 +46,22 @@ module.exports = web = function(config, db, services, modules) {
 	
 	var pending = [];
 	io.on('connection', function(c) {
+		c.on('watch', function(data, cb) {
+			if (!('channel' in data)) {
+				return;
+			}
+			
+			for (var i in services) {
+				var channel = services[i].channel;
+				if (channel.toLowerCase() == data.channel.toLowerCase()) {
+					c.watch = channel;
+					return cb();
+				}
+			}
+			
+			return cb('BlipBot is not in this channel.');
+		});
+		
 		if (!('userid' in c.request.session)) {
 			c.on('signup', function(data, cb) {
 				if (!('username' in data && 'password' in data && 'email' in data && 'beam' in data)) {
@@ -120,11 +138,14 @@ module.exports = web = function(config, db, services, modules) {
 							if (err) {
 								return callback(err);
 							}
-							app.get('db').collection('users').insert({ username: data.username, password: hash, email: data.email }, function(err, record) {
+							app.get('db').collection('users').insert({ username: data.username, password: hash, email: data.email }, function(err, records) {
 								if (err) {
 									return callback(err);
 								}
-								callback(null, service, record[0]._id);
+								if (records.length < 1) {
+									return callback(new Error('unable to create user'));	
+								}
+								callback(null, service, records[0]._id);
 							});
 						});
 					},
@@ -133,6 +154,9 @@ module.exports = web = function(config, db, services, modules) {
 						app.get('db').collection('services').insert({ user: user, type: 'beam', channel: data.beam }, function(err, records) {
 							if (err) {
 								return callback(err);
+							}
+							if (records.length < 1) {
+								return callback(new Error('unable to create service'));
 							}
 							service.sendMessage('BlipBot is now online. You can now manage me from the web interface.');
 							service.id = records[0]._id;
@@ -147,7 +171,6 @@ module.exports = web = function(config, db, services, modules) {
 								if (err) {
 									return log.warn(err);
 								}
-								
 								log.debug('Enabling module ' + i + ' for new signup.');
 								modules[i].enable(service, {});
 								callback();
@@ -264,6 +287,17 @@ module.exports = web = function(config, db, services, modules) {
 				modules[data.id].remove(services[c.service._id], db, data, cb);
 			}
 		});
+		
+		c.on('global', function(data, cb) {
+			if ('msg' in data && c.service._id in services) {
+				var service = services[c.service._id];
+				if (config.services.beam.admins.indexOf(service.channel) != -1) {
+					for (var i in services) {
+						services[i].sendMessage('(Global Message) ' + data.msg);
+					}
+				}
+			}
+		});
 	});
 	
 	this.on('chat', function(data, id) {
@@ -276,8 +310,25 @@ module.exports = web = function(config, db, services, modules) {
 		}
 	});
 	
-	require('./auth')(app, services);
-	require('./manage')(app);
+	this.on('follow', function(data, service) {
+		var sockets = io.sockets.connected;
+		for (var i in sockets) {
+			var c = sockets[i];
+			if ('watch' in c && c.watch.toLowerCase() == service.channel.toLowerCase()) {
+				sendFollow(c, service, data);
+			}
+		}
+	});
+	
+	require('../web/overlay')(app);
+	require('../web/auth')(app, services);
+	require('../web/manage')(app);
 };
+
+function sendFollow(c, service, data) {
+	service.getAvatar(data.id, function(url) {
+		c.emit('follow', { username: data.username, avatar: url });
+	});
+}
 
 util.inherits(web, events);

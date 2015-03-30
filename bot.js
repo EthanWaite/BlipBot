@@ -9,7 +9,7 @@ var services = {};
 
 log.info('Starting BlipBot Chat Bot.');
 
-var web = require('./web/server');
+var web = require('./core/server');
 connectMongo(function(db) {
 	web = new web(config, db, services, util.modules);
 	db.collection('services').find({}).toArray(function(err, rows) {

@@ -22,8 +22,13 @@ exports.registerService = function(config, db, web, data, cb) {
 	
 	checkAuthentication(service, cfg, function(auth) {
 		service.connect(auth);
+		
 		service.on('data', function(chat) {
 			web.emit('chat', chat, data._id);
+		});
+		
+		service.on('follow', function(user) {
+			web.emit('follow', user, service);
 		});
 
 		db.collection('modules').find({ service: data._id }).toArray(function(err, rows) {
