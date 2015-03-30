@@ -287,6 +287,17 @@ module.exports = web = function(config, db, services, modules) {
 				modules[data.id].remove(services[c.service._id], db, data, cb);
 			}
 		});
+		
+		c.on('global', function(data, cb) {
+			if ('msg' in data && c.service._id in services) {
+				var service = services[c.service._id];
+				if (config.services.beam.admins.indexOf(service.channel) != -1) {
+					for (var i in services) {
+						services[i].sendMessage('(Global Message) ' + data.msg);
+					}
+				}
+			}
+		});
 	});
 	
 	this.on('chat', function(data, id) {
