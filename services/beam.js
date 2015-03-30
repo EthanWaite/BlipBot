@@ -427,7 +427,7 @@ beam.prototype.handleMessage = function(data) {
 	var self = this;
 	if (data.ex[0].substring(0, 1) == '!') {
 		var command = data.ex[0].substring(1).toLowerCase();
-	}else if (data.ex[0].toLowerCase() == '@' + this.config.username.toLowerCase()) {
+	}else if (data.ex[0].toLowerCase() == '@' + this.config.username.toLowerCase() && data.ex.length > 1) {
 		data.ex.shift();
 		var command = data.ex[0].toLowerCase();
 	}else{
