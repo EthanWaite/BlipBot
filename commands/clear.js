@@ -86,7 +86,11 @@ function mute(data) {
 	
 	var self = this;
 	var user = this.parseUser(data.ex[0]);
-	this.banUser(user, time, function() {
+	this.banUser(user, time, function(err) {
+		if (err) {
+			return self.sendMessage('Unable to ban ' + user + '.', data.user.name);
+		}
+		
 		self.sendMessage('The user @' + user + ' has been muted' + (time ? ', and will be unmuted ' + date.from(new Date()) : ' permanently') + '.', data.user.name);
 	});
 }
@@ -102,7 +106,11 @@ function unmute(data) {
 	
 	var self = this;
 	var user = this.parseUser(data.ex[0]);
-	this.unbanUser(user, function() {
+	this.unbanUser(user, function(err) {
+		if (err) {
+			return self.sendMessage('Unable to ban ' + user + '.', data.user.name);
+		}
+		
 		self.sendMessage('The user @' + user + ' has been unmuted.', data.user.name);
 	});
 }
