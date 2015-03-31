@@ -192,7 +192,7 @@ beam.prototype.connectChat = function(user, endpoint) {
 			}
 			
 			if (data.type == 'event') {
-				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
+				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.roles.indexOf('Mod') != -1) {
 					self.emit('authenticated');
 				}else if (data.event == 'ChatMessage') {
 					var botMessage = data.data.user_name == self.config.username;
