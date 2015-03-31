@@ -1,4 +1,5 @@
 var moment = require('moment');
+var log = require('log4js').getLogger('MODERATOR');
 
 module.exports = {
 	id: 'clear',
@@ -88,6 +89,7 @@ function mute(data) {
 	var user = this.parseUser(data.ex[0]);
 	this.banUser(user, time, function(err) {
 		if (err) {
+			log.warn(err);
 			return self.sendMessage('Unable to ban ' + user + '.', data.user.name);
 		}
 		
@@ -108,6 +110,7 @@ function unmute(data) {
 	var user = this.parseUser(data.ex[0]);
 	this.unbanUser(user, function(err) {
 		if (err) {
+			log.warn(err);
 			return self.sendMessage('Unable to ban ' + user + '.', data.user.name);
 		}
 		
