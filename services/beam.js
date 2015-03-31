@@ -211,7 +211,7 @@ beam.prototype.connectChat = function(user, endpoint) {
 						user: {
 							id: data.data.user_id,
 							name: data.data.user_name,
-							role: data.data.user_role
+							role: data.data.user_roles
 						}
 					};
 						
@@ -461,8 +461,13 @@ beam.prototype.handleMessage = function(data) {
 	}
 };
 
-beam.prototype.hasRole = function(groups, role) {
-	return groups.indexOf(role.toLowerCase()) != -1;
+beam.prototype.hasRole = function(groups, roles) {
+	for (var i in roles) {
+		if (groups.indexOf(roles[i].toLowerCase()) != -1) {
+			return true;
+		}
+	}
+	return false;
 };
 
 beam.prototype.requireRole = function(groups, sender, role) {
