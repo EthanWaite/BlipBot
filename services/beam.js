@@ -192,7 +192,7 @@ beam.prototype.connectChat = function(user, endpoint) {
 			}
 			
 			if (data.type == 'event') {
-				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.role == 'Mod') {
+				if (data.event == 'UserUpdate' && data.data.username == self.config.username && data.data.roles.indexOf('Mod') != -1) {
 					self.emit('authenticated');
 				}else if (data.event == 'ChatMessage') {
 					var botMessage = data.data.user_name == self.config.username;
@@ -211,7 +211,7 @@ beam.prototype.connectChat = function(user, endpoint) {
 						user: {
 							id: data.data.user_id,
 							name: data.data.user_name,
-							role: data.data.user_role
+							role: data.data.user_roles
 						}
 					};
 						
@@ -329,29 +329,47 @@ beam.prototype.deleteMessage = function(id, role, cb) {
 	this.query('delete', 'chats/' + this.cid + '/message/' + id, {}, cb);
 };
 
-beam.prototype.banUser = function(user, expiry, cb) {
-	log.warn('Banning user ' + user + ' ' + (expiry ? 'until ' + expiry : 'forever') + '.');
+beam.prototype.banUser = function(username, expiry, cb) {
+	log.warn('Banning user ' + username + ' ' + (expiry ? 'until ' + expiry : 'forever') + '.');
 	
 	var self = this;
-	this.db.collection('bans').update({ service: this.id, user: user, expired: false }, { service: this.id, user: user, expiry: expiry, expired: false }, { upsert: true }, function(err) {
-		if (err) {
-			throw err;
+	this.getUser(username, function(err, user) {
+		if (err || !user) {
+			if (cb !== undefined) {
+				cb(new Error('unable to ban'));
+			}
+			return log.warn('Unable to ban user ' + username + '.');
 		}
 		
-		self.query('put', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+		self.db.collection('bans').update({ service: this.id, user: user.name, expired: false }, { service: this.id, user: user.name, id: user.id, expiry: expiry, expired: false }, { upsert: true }, function(err) {
+			if (err) {
+				throw err;
+			}
+
+			self.query('patch', 'channels/' + self.cid + '/users/' + user.id, { add: 'Banned' }, cb);
+		});
 	});
 };
 
-beam.prototype.unbanUser = function(user, cb) {
-	log.info('Unbanning user ' + user + ' from ' + this.channel + '...');
+beam.prototype.unbanUser = function(username, cb) {
+	log.info('Unbanning user ' + username + ' from ' + this.channel + '...');
 	
 	var self = this;
-	this.db.collection('bans').update({ user: user }, { $set: { expired: true } }, { multi: true }, function(err) {
-		if (err) {
-			throw err;
+	this.getUser(username, function(err, user) {
+		if (err || !user) {
+			if (cb !== undefined) {
+				cb(new Error('unable to unban'));
+			}
+			return log.warn('Unable to unban user ' + username + '.');
 		}
 		
-		self.query('delete', 'chats/' + self.cid + '/ban/' + user, {}, cb);
+		self.db.collection('bans').update({ user: user }, { $set: { expired: true } }, { multi: true }, function(err) {
+			if (err) {
+				throw err;
+			}
+
+			self.query('patch', 'channels/' + self.cid + '/users/' + user.id, { remove: 'Banned' }, cb);
+		});
 	});
 };
 
@@ -427,7 +445,7 @@ beam.prototype.handleMessage = function(data) {
 	var self = this;
 	if (data.ex[0].substring(0, 1) == '!') {
 		var command = data.ex[0].substring(1).toLowerCase();
-	}else if (data.ex[0].toLowerCase() == '@' + this.config.username.toLowerCase()) {
+	}else if (data.ex[0].toLowerCase() == '@' + this.config.username.toLowerCase() && data.ex.length > 1) {
 		data.ex.shift();
 		var command = data.ex[0].toLowerCase();
 	}else{
@@ -443,8 +461,13 @@ beam.prototype.handleMessage = function(data) {
 	}
 };
 
-beam.prototype.hasRole = function(groups, role) {
-	return groups.indexOf(role.toLowerCase()) != -1;
+beam.prototype.hasRole = function(groups, roles) {
+	for (var i in roles) {
+		if (groups.indexOf(roles[i].toLowerCase()) != -1) {
+			return true;
+		}
+	}
+	return false;
 };
 
 beam.prototype.requireRole = function(groups, sender, role) {
