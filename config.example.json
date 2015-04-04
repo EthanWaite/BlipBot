@@ -6,7 +6,8 @@
   "services": {
     "beam": {
       "username": "BlipBot",
-      "password": "password"
+      "password": "password",
+      "admins": [ "Ethan_" ]
     }
   },
   "db": {
